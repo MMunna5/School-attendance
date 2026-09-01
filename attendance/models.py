@@ -3,12 +3,22 @@ from django.contrib.auth.models import User
 
 
 class Teacher(models.Model):
+    EMPLOYMENT_FULL = 'full'
+    EMPLOYMENT_PART = 'part'
+    EMPLOYMENT_CHOICES = [
+        (EMPLOYMENT_FULL, 'Full-time'),
+        (EMPLOYMENT_PART, 'Part-time'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     mobile = models.CharField(max_length=15, blank=True)
-    # Comma-separated list of class names, e.g. "9,10,Play" — a teacher can
-    # now be assigned to more than one class. Use get_class_list() to read it.
     assigned_classes = models.CharField(max_length=255, blank=True, default="")
+    employment_type = models.CharField(
+        max_length=10,
+        choices=EMPLOYMENT_CHOICES,
+        default=EMPLOYMENT_FULL,
+    )
 
     def get_class_list(self):
         """Returns this teacher's assigned classes as a clean, de-duplicated list."""
@@ -23,7 +33,9 @@ class Teacher(models.Model):
 
     def __str__(self):
         classes = ", ".join(self.get_class_list())
-        return f"{self.name} ({classes})" if classes else self.name
+        label = dict(self.EMPLOYMENT_CHOICES).get(self.employment_type, '')
+        base = f"{self.name} ({classes})" if classes else self.name
+        return f"{base} [{label}]" if label else base
 
 
 class Student(models.Model):

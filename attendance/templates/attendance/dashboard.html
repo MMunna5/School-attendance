@@ -27,10 +27,11 @@
 {% block content %}
 
 {% if teacher %}
-<div class="mb-2 font-display text-[11px] tracking-widest uppercase text-ink-soft">Today · Class {{
-    teacher.assigned_class }}</div>
+<div class="mb-2 font-display text-[11px] tracking-widest uppercase text-ink-soft">
+    Today · {{ today|date:"l, d F Y" }}
+</div>
 
-<div class="grid grid-cols-3 gap-3 mb-5">
+<div class="grid grid-cols-3 gap-3 mb-6">
     <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
         <div class="text-[11px] uppercase tracking-widest text-ink-soft">Total</div>
         <div class="text-2xl font-bold text-forest-deep mt-1">{{ total_students }}</div>
@@ -45,14 +46,39 @@
     </div>
 </div>
 
-<a href="{% url 'attendance_page' %}"
-    class="block bg-white border border-gray-200 rounded-2xl p-6 mb-5 shadow-sm hover:shadow-md hover:border-forest transition">
-    <div class="font-display text-[11px] tracking-widest uppercase text-gold mb-1">Action</div>
-    <h2 class="text-xl font-bold text-forest-deep">Take Attendance</h2>
-    <p class="text-sm text-ink-soft mt-1.5">
-        Mark present / absent for Class {{ teacher.assigned_class }}. Parents get SMS automatically.
-    </p>
-</a>
+{% if teacher_classes %}
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">
+    Your Assigned Class{% if teacher_classes|length > 1 %}es{% endif %} — Take Attendance
+</div>
+
+<div class="grid gap-4 mb-6">
+    {% for class_name in teacher_classes %}
+    <a href="{% url 'attendance_page' %}?class={{ class_name }}"
+        class="block bg-white border-2 border-forest/20 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <div class="flex items-center gap-4">
+            <div
+                class="w-14 h-14 rounded-2xl bg-forest text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
+                {{ class_name }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-display text-[11px] tracking-widest uppercase text-gold mb-0.5">Class</div>
+                <h2 class="text-xl font-bold text-forest-deep">Class {{ class_name }}</h2>
+                <p class="text-sm text-ink-soft mt-1">
+                    Mark present / absent · SMS to parents of absentees
+                </p>
+            </div>
+            <div class="text-forest font-bold text-sm flex-shrink-0 hidden sm:block">
+                Open →
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 mb-6 text-sm">
+    No class has been assigned to you yet. Please contact the admin.
+</div>
+{% endif %}
 {% endif %}
 
 {% if request.user.is_staff %}

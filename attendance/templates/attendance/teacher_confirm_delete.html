@@ -19,8 +19,9 @@
     <h2 class="text-lg font-bold text-absent mb-3">Delete Teacher?</h2>
     <p class="text-sm text-ink-soft mb-5">
         Are you sure you want to remove <b>{{ teacher.name }}</b>
-        {% with class_list=teacher.get_class_list %}{% if class_list %}(Class {{ class_list|join:", " }}){% endif %}{%
-        endwith %}?
+        {% with class_list=teacher.get_class_list %}
+        {% if class_list %}(Class {{ class_list|join:", " }}){% endif %}
+        {% endwith %}?
         Their login account will also be removed. This cannot be undone.
     </p>
     <form method="post" class="flex gap-3">

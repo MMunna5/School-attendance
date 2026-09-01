@@ -1,30 +1,28 @@
 {% extends "attendance/base.html" %}
 
-{% block title %}Upload Teachers - Attendance Register{% endblock %}
+{% block title %}Upload {{ type_label }} Teachers - Attendance Register{% endblock %}
 {% block eyebrow %}Admin{% endblock %}
-{% block header_title %}Upload Teachers{% endblock %}
+{% block header_title %}Upload {{ type_label }} Teachers{% endblock %}
 {% block header_links %}
-<a href="{% url 'mark_teacher_attendance' %}" class="nav-btn">
+<a href="{% url 'teacher_list' %}" class="nav-btn">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
         stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
     </svg>
-    Back to Attendance
-</a>
-<a href="{% url 'teacher_list' %}" class="nav-btn">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round"
-            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-    Teachers
+    Back to Teachers
 </a>
 {% endblock %}
+
 {% block content %}
 
 <div class="bg-white border border-gray-200 rounded-xl p-6 max-w-lg mx-auto shadow-sm">
+    <div class="mb-4 px-3 py-2 rounded-lg text-sm font-semibold
+        {% if employment_type == 'full' %}bg-forest/10 text-forest{% else %}bg-gold/20 text-gold{% endif %}">
+        Uploading into: {{ type_label }}
+    </div>
+
     <p class="text-sm text-ink-soft mb-3">
-        Excel columns must be in this order. <strong>ID is auto-generated</strong> when saving.
+        Excel columns must be in this order. All rows will be saved as <strong>{{ type_label }}</strong>.
     </p>
     <div class="overflow-x-auto mb-5">
         <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
@@ -41,18 +39,24 @@
                     <td class="px-3 py-2">01712345678</td>
                     <td class="px-3 py-2">9</td>
                 </tr>
+                <tr>
+                    <td class="px-3 py-2">Salma Begum</td>
+                    <td class="px-3 py-2">01812345678</td>
+                    <td class="px-3 py-2">8,10</td>
+                </tr>
             </tbody>
         </table>
     </div>
     <p class="text-xs text-ink-soft mb-4">
-        Class = যে ক্লাসের student attendance এই teacher নেবেন (assigned class)।
+        Class = একটা (`9`) অথবা কমা দিয়ে একাধিক (`8,10`)
     </p>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="employment_type" value="{{ employment_type }}">
         <input type="file" name="excel_file" accept=".xlsx" multiple required class="w-full text-sm mb-4">
         <button type="submit"
             class="w-full bg-forest text-white font-bold py-3 rounded-lg hover:bg-forest-deep transition">
-            Upload &amp; Import
+            Upload &amp; Import as {{ type_label }}
         </button>
     </form>
 </div>

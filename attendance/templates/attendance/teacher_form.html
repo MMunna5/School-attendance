@@ -36,16 +36,26 @@
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-ink-soft mb-1">
-                Assigned Class <span class="text-ink-soft font-normal">(optional)</span>
+            <label class="block text-sm font-semibold text-ink-soft mb-1.5">
+                Assigned Classes <span class="text-ink-soft font-normal">(select one or more)</span>
             </label>
-            <select name="assigned_class"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-forest">
-                <option value="">— No class assigned —</option>
+            <div class="flex flex-wrap gap-2 border border-gray-300 rounded-lg p-3">
                 {% for c in class_options %}
-                <option value="{{ c.value }}" {% if c.is_selected %}selected{% endif %}>{{ c.value }}</option>
+                <label class="cursor-pointer">
+                    {% if c.is_selected %}
+                    <input type="checkbox" name="assigned_classes" value="{{ c.value }}" class="peer sr-only" checked>
+                    {% else %}
+                    <input type="checkbox" name="assigned_classes" value="{{ c.value }}" class="peer sr-only">
+                    {% endif %}
+                    <span
+                        class="block px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 text-ink-soft peer-checked:bg-forest peer-checked:text-white peer-checked:border-forest transition">
+                        Class {{ c.value }}
+                    </span>
+                </label>
+                {% empty %}
+                <span class="text-sm text-ink-soft">No classes found. Upload students first.</span>
                 {% endfor %}
-            </select>
+            </div>
         </div>
 
         {% if mode == 'Add' %}

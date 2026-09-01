@@ -168,8 +168,6 @@ def mark_attendance(request):
             'is_admin_user': False,
         })
 
-    # class_choices = the full list of classes this user is allowed to pick from.
-    # Admin -> every class in the system. Teacher -> only their assigned classes.
     if is_admin_user:
         class_choices = get_class_choices()
     else:
@@ -180,8 +178,6 @@ def mark_attendance(request):
                 'is_admin_user': False,
             })
 
-    # Show a class picker for admin always, and for a teacher only when they
-    # have more than one class (a single-class teacher goes straight in).
     show_class_selector = is_admin_user or len(class_choices) > 1
 
     if not is_admin_user and len(class_choices) == 1:
@@ -510,16 +506,107 @@ def student_upload(request):
 @login_required
 @user_passes_test(is_admin)
 def teacher_list(request):
-    teachers = Teacher.objects.select_related('user').order_by('id')
-    return render(request, 'attendance/teacher_list.html', {'teachers': teachers})
+    full_time = Teacher.objects.select_related('user').filter(
+        employment_type=Teacher.EMPLOYMENT_FULL
+    ).order_by('id')
+    part_time = Teacher.objects.select_related('user').filter(
+        employment_type=Teacher.EMPLOYMENT_PART
+    ).order_by('id')
+    return render(request, 'attendance/teacher_list.html', {
+        'full_time_teachers': full_time,
+        'part_time_teachers': part_time,
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def teacher_add(request):
+    error = None
+    employment_type = request.GET.get('type', request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)).strip()
+    if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
+        employment_type = Teacher.EMPLOYMENT_FULL
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        name = request.POST.get('name', '').strip()
+        mobile = request.POST.get('mobile', '').strip()
+        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
+        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
+            employment_type = Teacher.EMPLOYMENT_FULL
+        assigned_classes_list = request.POST.getlist('assigned_classes')
+        assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
+
+        if User.objects.filter(username=username).exists():
+            error = f"Username '{username}' is already taken."
+        else:
+            user = User.objects.create_user(username=username, password=password)
+            Teacher.objects.create(
+                user=user,
+                name=name,
+                mobile=mobile,
+                assigned_classes=assigned_classes,
+                employment_type=employment_type,
+            )
+            return redirect('teacher_list')
+
+    type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
+    return render(request, 'attendance/teacher_form.html', {
+        'mode': 'Add',
+        'error': error,
+        'class_options': build_choice_options_multi(get_class_choices(), []),
+        'employment_type': employment_type,
+        'type_label': type_label,
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def teacher_edit(request, teacher_id):
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    if request.method == 'POST':
+        teacher.name = request.POST.get('name', '').strip()
+        teacher.mobile = request.POST.get('mobile', '').strip()
+        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
+        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
+            employment_type = Teacher.EMPLOYMENT_FULL
+        teacher.employment_type = employment_type
+        assigned_classes_list = request.POST.getlist('assigned_classes')
+        teacher.assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
+        teacher.save()
+
+        new_password = request.POST.get('password', '').strip()
+        if new_password and teacher.user:
+            teacher.user.set_password(new_password)
+            teacher.user.save()
+
+        return redirect('teacher_list')
+
+    type_label = 'Full-time' if teacher.employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
+    return render(request, 'attendance/teacher_form.html', {
+        'mode': 'Edit',
+        'teacher': teacher,
+        'class_options': build_choice_options_multi(get_class_choices(), teacher.get_class_list()),
+        'employment_type': teacher.employment_type,
+        'type_label': type_label,
+    })
 
 
 @login_required
 @user_passes_test(is_admin)
 def teacher_upload(request):
     file_results = []
+    employment_type = request.GET.get('type', request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)).strip()
+    if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
+        employment_type = Teacher.EMPLOYMENT_FULL
+    type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
 
     if request.method == 'POST' and request.FILES.getlist('excel_file'):
+        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
+        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
+            employment_type = Teacher.EMPLOYMENT_FULL
+        type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
+
         for excel_file in request.FILES.getlist('excel_file'):
             if not excel_file.name.lower().endswith('.xlsx'):
                 file_results.append({
@@ -576,7 +663,6 @@ def teacher_upload(request):
                     skipped += 1
                     continue
 
-                # Mobile clean → username হিসেবে ব্যবহার হবে
                 clean_mobile = str(mobile).strip() if mobile else ""
                 if clean_mobile.endswith('.0'):
                     clean_mobile = clean_mobile[:-2]
@@ -588,12 +674,8 @@ def teacher_upload(request):
                     continue
 
                 name_str = str(name).strip()
-                # The "Class" column can hold one class ("9") or several
-                # separated by commas ("9,10") — both are stored as-is and
-                # parsed later by Teacher.get_class_list().
                 class_str = str(assigned_class).strip() if assigned_class else ""
 
-                # Username = mobile, default password = 12345
                 user = User.objects.filter(username=clean_mobile).first()
                 if not user:
                     user = User.objects.create_user(
@@ -607,10 +689,10 @@ def teacher_upload(request):
                     defaults={
                         "assigned_classes": class_str,
                         "user": user,
+                        "employment_type": employment_type,
                     }
                 )
 
-                # আগে user link না থাকলে এখন link করো
                 if obj.user_id != user.id:
                     obj.user = user
                     obj.save(update_fields=["user"])
@@ -629,62 +711,8 @@ def teacher_upload(request):
 
     return render(request, 'attendance/teacher_upload.html', {
         'file_results': file_results,
-    })
-
-
-@login_required
-@user_passes_test(is_admin)
-def teacher_add(request):
-    error = None
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-        name = request.POST.get('name', '').strip()
-        mobile = request.POST.get('mobile', '').strip()
-        assigned_classes_list = request.POST.getlist('assigned_classes')
-        assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
-
-        if User.objects.filter(username=username).exists():
-            error = f"Username '{username}' is already taken."
-        else:
-            user = User.objects.create_user(username=username, password=password)
-            Teacher.objects.create(
-                user=user,
-                name=name,
-                mobile=mobile,
-                assigned_classes=assigned_classes,  # optional, can be empty
-            )
-            return redirect('teacher_list')
-
-    return render(request, 'attendance/teacher_form.html', {
-        'mode': 'Add',
-        'error': error,
-        'class_options': build_choice_options_multi(get_class_choices(), []),
-    })
-
-
-@login_required
-@user_passes_test(is_admin)
-def teacher_edit(request, teacher_id):
-    teacher = get_object_or_404(Teacher, id=teacher_id)
-    if request.method == 'POST':
-        teacher.name = request.POST.get('name', '').strip()
-        teacher.mobile = request.POST.get('mobile', '').strip()
-        assigned_classes_list = request.POST.getlist('assigned_classes')
-        teacher.assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
-        teacher.save()
-
-        new_password = request.POST.get('password', '').strip()
-        if new_password and teacher.user:
-            teacher.user.set_password(new_password)
-            teacher.user.save()
-
-        return redirect('teacher_list')
-
-    return render(request, 'attendance/teacher_form.html', {
-        'mode': 'Edit',
-        'teacher': teacher,
-        'class_options': build_choice_options_multi(get_class_choices(), teacher.get_class_list()),
+        'employment_type': employment_type,
+        'type_label': type_label,
     })
 
 
@@ -754,6 +782,9 @@ def mark_teacher_attendance(request):
         for t in teachers
     ]
 
+    full_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_FULL]
+    part_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_PART]
+
     if already_marked:
         present_count = TeacherAttendance.objects.filter(date=today, is_present=True).count()
         absent_count = TeacherAttendance.objects.filter(date=today, is_present=False).count()
@@ -764,6 +795,8 @@ def mark_teacher_attendance(request):
     return render(request, 'attendance/mark_teacher_attendance.html', {
         'teachers': teachers,
         'teacher_rows': teacher_rows,
+        'full_time_rows': full_time_rows,
+        'part_time_rows': part_time_rows,
         'today': today,
         'saved': saved,
         'sms_sent_count': sms_sent_count,
@@ -773,7 +806,6 @@ def mark_teacher_attendance(request):
         'absent_count': absent_count,
         'total_teachers': teachers.count(),
     })
-
 
 @login_required
 @user_passes_test(is_admin)

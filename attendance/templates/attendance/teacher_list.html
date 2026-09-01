@@ -27,24 +27,27 @@
 
 {% block content %}
 
-<div class="flex justify-end mb-4 gap-3">
-    <a href="{% url 'teacher_upload' %}"
-        class="bg-forest text-white text-sm font-bold px-4 py-2.5 rounded-lg hover:bg-forest-deep transition">Upload
-        Excel</a>
-    <a href="{% url 'teacher_add' %}"
-        class="bg-gold text-white text-sm font-bold px-4 py-2.5 rounded-lg hover:opacity-90 transition">+ Add
-        Teacher</a>
+{# ===== FULL-TIME ===== #}
+<div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Full-time Teachers</div>
+    <div class="flex gap-2">
+        <a href="{% url 'teacher_upload' %}?type=full"
+            class="bg-forest text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-forest-deep transition">Upload
+            Excel</a>
+        <a href="{% url 'teacher_add' %}?type=full"
+            class="bg-gold text-white text-xs font-bold px-3 py-2 rounded-lg hover:opacity-90 transition">+ Add</a>
+    </div>
 </div>
 
-{% if teachers %}
-<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+{% if full_time_teachers %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-8">
     <div class="grid grid-cols-12 gap-2 px-4 py-2.5 bg-forest text-white text-xs font-bold uppercase tracking-wide">
         <div class="col-span-1">#</div>
         <div class="col-span-5">Name</div>
         <div class="col-span-3">Number</div>
         <div class="col-span-3 text-right">Action</div>
     </div>
-    {% for teacher in teachers %}
+    {% for teacher in full_time_teachers %}
     <div
         class="grid grid-cols-12 gap-2 px-4 py-3.5 items-center border-t border-gray-100 text-sm hover:bg-paper/60 transition">
         <div class="col-span-1 font-mono text-ink-soft font-semibold">{{ forloop.counter }}</div>
@@ -55,15 +58,13 @@
                 {% if class_list %}
                 {% for c in class_list %}
                 <span
-                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-forest/10 text-forest">
-                    Class {{ c }}
-                </span>
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-forest/10 text-forest">Class
+                    {{ c }}</span>
                 {% endfor %}
                 {% else %}
                 <span
-                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-ink-soft">
-                    No class assigned
-                </span>
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-ink-soft">No
+                    class</span>
                 {% endif %}
                 {% endwith %}
             </div>
@@ -79,7 +80,67 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="text-center text-ink-soft py-16">No teachers added yet.</div>
+<div class="text-center text-ink-soft py-8 mb-8 bg-white border border-gray-200 rounded-xl text-sm">
+    No full-time teachers yet. Use Add or Upload Excel above.
+</div>
+{% endif %}
+
+{# ===== PART-TIME ===== #}
+<div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Part-time Teachers</div>
+    <div class="flex gap-2">
+        <a href="{% url 'teacher_upload' %}?type=part"
+            class="bg-forest text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-forest-deep transition">Upload
+            Excel</a>
+        <a href="{% url 'teacher_add' %}?type=part"
+            class="bg-gold text-white text-xs font-bold px-3 py-2 rounded-lg hover:opacity-90 transition">+ Add</a>
+    </div>
+</div>
+
+{% if part_time_teachers %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+    <div class="grid grid-cols-12 gap-2 px-4 py-2.5 bg-gold text-white text-xs font-bold uppercase tracking-wide">
+        <div class="col-span-1">#</div>
+        <div class="col-span-5">Name</div>
+        <div class="col-span-3">Number</div>
+        <div class="col-span-3 text-right">Action</div>
+    </div>
+    {% for teacher in part_time_teachers %}
+    <div
+        class="grid grid-cols-12 gap-2 px-4 py-3.5 items-center border-t border-gray-100 text-sm hover:bg-paper/60 transition">
+        <div class="col-span-1 font-mono text-ink-soft font-semibold">{{ forloop.counter }}</div>
+        <div class="col-span-5">
+            <div class="font-semibold text-forest-deep">{{ teacher.name }}</div>
+            <div class="mt-1 flex flex-wrap gap-1">
+                {% with class_list=teacher.get_class_list %}
+                {% if class_list %}
+                {% for c in class_list %}
+                <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-gold/20 text-gold">Class
+                    {{ c }}</span>
+                {% endfor %}
+                {% else %}
+                <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-ink-soft">No
+                    class</span>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="col-span-3 text-ink-soft font-mono text-sm">
+            {% if teacher.mobile %}{{ teacher.mobile }}{% else %}<span class="text-absent">—</span>{% endif %}
+        </div>
+        <div class="col-span-3 flex gap-3 justify-end text-sm font-semibold">
+            <a href="{% url 'teacher_edit' teacher.id %}" class="text-forest hover:underline">Edit</a>
+            <a href="{% url 'teacher_delete' teacher.id %}" class="text-absent hover:underline">Delete</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-xl text-sm">
+    No part-time teachers yet. Use Add or Upload Excel above.
+</div>
 {% endif %}
 
 {% endblock %}
