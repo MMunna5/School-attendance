@@ -1,0 +1,130 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Dashboard - Attendance Register{% endblock %}
+{% block header_title %}Welcome, {{ teacher.name|default:request.user.username }}{% endblock %}
+{% block header_links %}
+<a href="{% url 'change_password' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+    </svg>
+    Password
+</a>
+<form method="post" action="{% url 'logout' %}" class="inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-btn nav-btn-danger">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Log Out
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+{% if teacher %}
+<div class="mb-2 font-display text-[11px] tracking-widest uppercase text-ink-soft">Today · Class {{
+    teacher.assigned_class }}</div>
+
+<div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Total</div>
+        <div class="text-2xl font-bold text-forest-deep mt-1">{{ total_students }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
+        <div class="text-2xl font-bold text-present mt-1">{{ present_count }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
+        <div class="text-2xl font-bold text-absent mt-1">{{ absent_count }}</div>
+    </div>
+</div>
+
+<a href="{% url 'attendance_page' %}"
+    class="block bg-white border border-gray-200 rounded-2xl p-6 mb-5 shadow-sm hover:shadow-md hover:border-forest transition">
+    <div class="font-display text-[11px] tracking-widest uppercase text-gold mb-1">Action</div>
+    <h2 class="text-xl font-bold text-forest-deep">Take Attendance</h2>
+    <p class="text-sm text-ink-soft mt-1.5">
+        Mark present / absent for Class {{ teacher.assigned_class }}. Parents get SMS automatically.
+    </p>
+</a>
+{% endif %}
+
+{% if request.user.is_staff %}
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mt-6 mb-3">Today · All Classes</div>
+
+<div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Students</div>
+        <div class="text-2xl font-bold text-forest-deep mt-1">{{ admin_total }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
+        <div class="text-2xl font-bold text-present mt-1">{{ admin_present }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
+        <div class="text-2xl font-bold text-absent mt-1">{{ admin_absent }}</div>
+    </div>
+</div>
+
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Admin Panel</div>
+
+<div class="grid gap-4">
+    <a href="{% url 'attendance_page' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Take Attendance</h2>
+        <p class="text-sm text-ink-soft mt-1">Mark attendance for any class</p>
+    </a>
+
+    <a href="{% url 'student_list' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Students</h2>
+        <p class="text-sm text-ink-soft mt-1">View, add, edit or upload student list</p>
+    </a>
+
+    <a href="{% url 'teacher_list' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Teachers</h2>
+        <p class="text-sm text-ink-soft mt-1">Create logins and assign classes</p>
+    </a>
+
+    <a href="{% url 'mark_teacher_attendance' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Teacher Attendance</h2>
+        <p class="text-sm text-ink-soft mt-1">Mark today's attendance for teachers</p>
+    </a>
+
+    <a href="{% url 'teacher_attendance_history' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Teacher Attendance History</h2>
+        <p class="text-sm text-ink-soft mt-1">Monthly present/absent summary & Excel download</p>
+    </a>
+
+    <a href="{% url 'attendance_history' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Student Attendance History</h2>
+        <p class="text-sm text-ink-soft mt-1">Check past records by class & date</p>
+    </a>
+
+    <a href="{% url 'student_upload' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Upload Excel</h2>
+        <p class="text-sm text-ink-soft mt-1">Bulk import students from Excel file</p>
+    </a>
+</div>
+{% endif %}
+
+{% if not teacher and not request.user.is_staff %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+    Your account is not linked to any teacher or admin role.<br>
+    Please contact the administrator.
+</div>
+{% endif %}
+
+{% endblock %}

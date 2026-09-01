@@ -1,0 +1,117 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Attendance History - Attendance Register{% endblock %}
+{% block eyebrow %}Admin{% endblock %}
+{% block header_title %}Attendance History{% endblock %}
+{% block header_links %}
+<a href="{% url 'dashboard' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+    </svg>
+    Dashboard
+</a>
+<form method="post" action="{% url 'logout' %}" class="inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-btn nav-btn-danger">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Log Out
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-semibold text-ink-soft mb-1.5">Class</label>
+        <select name="class"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-forest">
+            <option value="">Select a class</option>
+            {% for c in all_classes %}
+            <option value="{{ c.name }}" {% if c.is_selected %}selected{% endif %}>Class {{ c.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex-1 min-w-[160px]">
+        <label class="block text-xs font-semibold text-ink-soft mb-1.5">Date</label>
+        <input type="date" name="date" value="{{ date_filter }}"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-forest">
+    </div>
+
+    <button type="submit"
+        class="bg-forest text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-forest-deep transition">
+        View
+    </button>
+
+    {% if class_filter %}
+    <a href="{% url 'export_attendance' %}?class={{ class_filter }}&date={{ date_filter }}"
+        class="bg-gold text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:opacity-90 transition">
+        Download Excel
+    </a>
+    {% endif %}
+</form>
+
+{% if class_filter %}
+<div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
+        <div class="text-xl font-bold text-present">{{ present_count }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
+        <div class="text-xl font-bold text-absent">{{ absent_count }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Class</div>
+        <div class="text-xl font-bold text-forest-deep">{{ class_filter }}</div>
+    </div>
+</div>
+
+{% if records %}
+<div class="space-y-2.5">
+    {% for r in records %}
+    <div class="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 shadow-sm">
+        <div
+            class="w-10 h-10 rounded-full border-2 border-forest flex items-center justify-center text-sm font-bold text-forest flex-shrink-0 bg-forest/5">
+            {{ r.student.roll_no }}
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-forest-deep truncate">{{ r.student.name }}</div>
+            <div class="text-xs text-ink-soft">Class {{ r.student.class_name }}{{ r.student.section }}</div>
+        </div>
+        <div class="flex-shrink-0">
+            {% if r.status == 'present' %}
+            <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-present">Present</span>
+            {% elif r.status == 'absent' %}
+            <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-absent">Absent</span>
+            {% else %}
+            <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-ink-soft">Not
+                Marked</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+    No attendance records found for this class and date.
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+    Please select a class and date to view attendance history.
+</div>
+{% endif %}
+
+{% endblock %}

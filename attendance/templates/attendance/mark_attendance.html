@@ -1,0 +1,181 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Take Attendance - Attendance Register{% endblock %}
+
+{% block eyebrow %}
+{% if is_admin_user %}Admin{% elif current_class %}Class {{ current_class }}{% else %}Select Class{% endif %}
+{% endblock %}
+
+{% block header_title %}Today's Attendance{% endblock %}
+
+{% block header_meta %}
+<div class="text-sm text-green-100 mt-1">{{ today|date:"l, d F Y" }}</div>
+{% endblock %}
+
+{% block header_links %}
+<a href="{% url 'dashboard' %}" class="nav-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+    stroke-width="2.5">
+    <path stroke-linecap="round" stroke-linejoin="round"
+      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+  </svg>
+  Dashboard
+</a>
+<form method="post" action="{% url 'logout' %}" class="inline">
+  {% csrf_token %}
+  <button type="submit" class="nav-btn nav-btn-danger">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+    Log Out
+  </button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
+  {{ error }}
+</div>
+{% endif %}
+
+<div
+  class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <div class="text-xs font-semibold text-ink-soft uppercase tracking-wide">Today</div>
+    <div class="text-lg font-bold text-forest-deep">{{ today|date:"l" }}</div>
+    <div class="text-sm text-ink-soft">{{ today|date:"d F Y" }}{% if current_class %} · Class {{ current_class }}{%
+      endif %}</div>
+  </div>
+  {% if already_marked %}
+  <div class="flex gap-3">
+    <div class="bg-green-50 text-present font-bold px-4 py-2 rounded-xl text-center">
+      <div class="text-xl">{{ present_count }}</div>
+      <div class="text-xs font-semibold">Present</div>
+    </div>
+    <div class="bg-red-50 text-absent font-bold px-4 py-2 rounded-xl text-center">
+      <div class="text-xl">{{ absent_count }}</div>
+      <div class="text-xs font-semibold">Absent</div>
+    </div>
+    <div class="bg-gray-50 text-ink-soft font-bold px-4 py-2 rounded-xl text-center">
+      <div class="text-xl">{{ total_students }}</div>
+      <div class="text-xs font-semibold">Total</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if saved %}
+<div class="bg-green-50 border border-green-200 text-forest rounded-xl p-4 mb-5 text-sm">
+  Attendance saved successfully.
+  {% if sms_sent_count %} · {{ sms_sent_count }} SMS sent to parents.{% endif %}
+</div>
+{% endif %}
+
+{% if already_marked and not saved %}
+<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 mb-5 text-sm">
+  Attendance for this class has already been taken today. It can only be taken once per day.
+</div>
+{% endif %}
+
+{% if sms_warning %}
+<div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
+  {{ sms_warning }}
+</div>
+{% endif %}
+
+{% if show_class_selector %}
+<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
+  <div class="flex-1 min-w-[160px]">
+    <label class="block text-xs font-semibold text-ink-soft mb-1.5">Select Class</label>
+    <select name="class" onchange="this.form.submit()"
+      class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-forest">
+      <option value="">-- Choose a class --</option>
+      {% for c in all_classes %}
+      <option value="{{ c.name }}" {% if c.is_selected %}selected{% endif %}>Class {{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+{% endif %}
+
+{% if students %}
+<form method="post" id="attForm" onsubmit="return confirmSave();">
+  {% csrf_token %}
+  {% if show_class_selector and current_class %}
+  <input type="hidden" name="class" value="{{ current_class }}">
+  {% endif %}
+
+  <div class="space-y-2 mb-6">
+    {% for item in student_rows %}
+    <div class="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3 shadow-sm">
+      <div
+        class="w-9 h-9 rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
+        {{ item.student.roll_no }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-forest-deep truncate text-sm">{{ item.student.name }}</div>
+        {% if item.student.parent_mobile %}
+        <div class="text-[11px] text-ink-soft">{{ item.student.parent_mobile }}</div>
+        {% else %}
+        <div class="text-[11px] text-absent">No phone</div>
+        {% endif %}
+      </div>
+      <div class="flex gap-1.5 flex-shrink-0">
+        {% if already_marked %}
+        {% if item.is_present %}
+        <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
+        {% else %}
+        <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-absent text-white">Absent</span>
+        {% endif %}
+        {% else %}
+        <label class="cursor-pointer">
+          <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" checked>
+          <span
+            class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
+            Present
+          </span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only">
+          <span
+            class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">
+            Absent
+          </span>
+        </label>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not already_marked %}
+  <div class="sticky bottom-4">
+    <button type="submit"
+      class="w-full bg-forest text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-forest-deep transition text-base">
+      Save Attendance & Send SMS
+    </button>
+  </div>
+  {% endif %}
+</form>
+
+<script>
+  function confirmSave() {
+    return confirm("Save attendance and send SMS? This can only be done once per day for this class.");
+  }
+</script>
+
+{% elif show_class_selector and not current_class %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+  Please select a class above to take attendance.
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+  No students found in this class yet.
+</div>
+{% endif %}
+
+{% endblock %}

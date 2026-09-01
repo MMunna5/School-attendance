@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Attendance Register{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Noto+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#F7F4EC',
+                        forest: '#1E3D32',
+                        'forest-deep': '#14291F',
+                        gold: '#C9982E',
+                        ink: '#2B3A67',
+                        'ink-soft': '#6B7594',
+                        present: '#4C7A5D',
+                        absent: '#B33A3A',
+                    },
+                    fontFamily: {
+                        display: ['"Special Elite"', 'monospace'],
+                        sans: ['"Noto Sans"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans', sans-serif;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 0.6rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            text-decoration: none;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(201, 152, 46, 0.35);
+            border-color: rgba(201, 152, 46, 0.55);
+            color: #fff;
+        }
+
+        .nav-btn-gold {
+            background: #C9982E;
+            border-color: #C9982E;
+            color: #fff;
+        }
+
+        .nav-btn-gold:hover {
+            background: #b8871f;
+            border-color: #b8871f;
+        }
+
+        .nav-btn-danger {
+            background: rgba(179, 58, 58, 0.25);
+            border-color: rgba(179, 58, 58, 0.4);
+        }
+
+        .nav-btn-danger:hover {
+            background: rgba(179, 58, 58, 0.5);
+            border-color: rgba(179, 58, 58, 0.7);
+        }
+    </style>
+</head>
+
+<body class="bg-paper min-h-screen text-ink">
+
+    <header class="bg-forest text-white px-5 py-5 flex justify-between items-start flex-wrap gap-3 shadow-md">
+        <div>
+            <div class="font-display text-[11px] tracking-widest uppercase text-gold">{% block eyebrow %}Attendance
+                Register{% endblock %}</div>
+            <h1 class="text-xl font-bold mt-1">{% block header_title %}{% endblock %}</h1>
+            {% block header_meta %}{% endblock %}
+        </div>
+        <nav class="flex flex-wrap gap-2 items-center">
+            {% block header_links %}
+            <a href="{% url 'dashboard' %}" class="nav-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+                </svg>
+                Dashboard
+            </a>
+            <a href="{% url 'change_password' %}" class="nav-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Password
+            </a>
+            <form method="post" action="{% url 'logout' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="nav-btn nav-btn-danger">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Log Out
+                </button>
+            </form>
+            {% endblock %}
+        </nav>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+
+</html>

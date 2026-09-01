@@ -1,0 +1,79 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Upload Teachers - Attendance Register{% endblock %}
+{% block eyebrow %}Admin{% endblock %}
+{% block header_title %}Upload Teachers{% endblock %}
+{% block header_links %}
+<a href="{% url 'mark_teacher_attendance' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+    Back to Attendance
+</a>
+<a href="{% url 'teacher_list' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+    Teachers
+</a>
+{% endblock %}
+{% block content %}
+
+<div class="bg-white border border-gray-200 rounded-xl p-6 max-w-lg mx-auto shadow-sm">
+    <p class="text-sm text-ink-soft mb-3">
+        Excel columns must be in this order. <strong>ID is auto-generated</strong> when saving.
+    </p>
+    <div class="overflow-x-auto mb-5">
+        <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+            <thead>
+                <tr class="bg-forest text-white">
+                    <th class="px-3 py-2 text-left">Name</th>
+                    <th class="px-3 py-2 text-left">Number</th>
+                    <th class="px-3 py-2 text-left">Class</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="bg-paper">
+                    <td class="px-3 py-2">Karim Hosen</td>
+                    <td class="px-3 py-2">01712345678</td>
+                    <td class="px-3 py-2">9</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="text-xs text-ink-soft mb-4">
+        Class = যে ক্লাসের student attendance এই teacher নেবেন (assigned class)।
+    </p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="excel_file" accept=".xlsx" multiple required class="w-full text-sm mb-4">
+        <button type="submit"
+            class="w-full bg-forest text-white font-bold py-3 rounded-lg hover:bg-forest-deep transition">
+            Upload &amp; Import
+        </button>
+    </form>
+</div>
+
+{% if file_results %}
+<div class="max-w-lg mx-auto mt-6 space-y-3">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Results</div>
+    {% for r in file_results %}
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        {% if r.error %}
+        <div class="font-bold text-absent mb-1">{{ r.filename }}</div>
+        <div class="text-sm text-absent">{{ r.error }}</div>
+        {% else %}
+        <div class="font-bold text-forest-deep mb-1">{{ r.filename }}</div>
+        <div class="text-sm text-ink-soft">
+            Created: {{ r.created }} · Updated: {{ r.updated }} · Skipped: {{ r.skipped }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
