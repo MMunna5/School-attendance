@@ -8,7 +8,10 @@
 {% endblock %}
 {% block header_links %}
 <a href="{% url 'dashboard' %}" class="nav-btn">Dashboard</a>
-<a href="{% url 'teacher_list' %}" class="nav-btn">Teachers</a>
+<form method="post" action="{% url 'logout' %}" class="inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-btn nav-btn-danger">Log Out</button>
+</form>
 {% endblock %}
 
 {% block content %}
@@ -45,12 +48,10 @@
     {% endif %}
 </div>
 
-{% if full_already_marked and not saved or full_already_marked and saved_type != 'full' %}
 {% if full_already_marked %}
 <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 mb-3 text-sm">
     Full-time attendance already taken today.
 </div>
-{% endif %}
 {% endif %}
 
 {% if full_time_rows %}

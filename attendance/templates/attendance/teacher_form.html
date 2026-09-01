@@ -2,7 +2,7 @@
 
 {% block title %}{{ mode }} Teacher - Attendance Register{% endblock %}
 {% block eyebrow %}Admin{% endblock %}
-{% block header_title %}{{ mode }} Teacher{% endblock %}
+{% block header_title %}{{ mode }} {{ type_label|default:"Teacher" }}{% endblock %}
 {% block header_links %}
 <a href="{% url 'teacher_list' %}" class="nav-btn">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -22,6 +22,17 @@
 
     <form method="post" class="space-y-4">
         {% csrf_token %}
+
+        {# এই hidden field-ই Part-time / Full-time ঠিক রাখে #}
+        <input type="hidden" name="employment_type" value="{{ employment_type|default:'full' }}">
+
+        <div>
+            <label class="block text-sm font-semibold text-ink-soft mb-1">Employment Type</label>
+            <div class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-gray-50 font-semibold
+                {% if employment_type == 'part' %}text-gold{% else %}text-forest{% endif %}">
+                {{ type_label|default:"Full-time" }}
+            </div>
+        </div>
 
         <div>
             <label class="block text-sm font-semibold text-ink-soft mb-1">Name</label>

@@ -104,14 +104,20 @@
 <div class="grid gap-4">
     <a href="{% url 'attendance_page' %}"
         class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
-        <h2 class="text-lg font-bold text-forest-deep">Take Attendance</h2>
+        <h2 class="text-lg font-bold text-forest-deep">Take Student Attendance</h2>
         <p class="text-sm text-ink-soft mt-1">Mark attendance for any class</p>
     </a>
 
     <a href="{% url 'student_list' %}"
         class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
-        <h2 class="text-lg font-bold text-forest-deep">Students</h2>
+        <h2 class="text-lg font-bold text-forest-deep">Student List</h2>
         <p class="text-sm text-ink-soft mt-1">View, add, edit or upload student list</p>
+    </a>
+
+    <a href="{% url 'attendance_history' %}"
+        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
+        <h2 class="text-lg font-bold text-forest-deep">Student Attendance History</h2>
+        <p class="text-sm text-ink-soft mt-1">Check past records by class & date</p>
     </a>
 
     <a href="{% url 'teacher_list' %}"
@@ -130,12 +136,6 @@
         class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
         <h2 class="text-lg font-bold text-forest-deep">Teacher Attendance History</h2>
         <p class="text-sm text-ink-soft mt-1">Monthly present/absent summary & Excel download</p>
-    </a>
-
-    <a href="{% url 'attendance_history' %}"
-        class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
-        <h2 class="text-lg font-bold text-forest-deep">Student Attendance History</h2>
-        <p class="text-sm text-ink-soft mt-1">Check past records by class & date</p>
     </a>
 
     <a href="{% url 'student_upload' %}"

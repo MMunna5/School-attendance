@@ -522,7 +522,7 @@ def teacher_list(request):
 @user_passes_test(is_admin)
 def teacher_add(request):
     error = None
-    employment_type = request.GET.get('type', request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)).strip()
+    employment_type = request.GET.get('type', '').strip() or request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
     if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
         employment_type = Teacher.EMPLOYMENT_FULL
 
