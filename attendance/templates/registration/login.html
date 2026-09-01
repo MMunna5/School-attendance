@@ -31,7 +31,10 @@
         }
     </script>
     <style>
-        body { font-family: 'Noto Sans', sans-serif; }
+        body {
+            font-family: 'Noto Sans', sans-serif;
+        }
+
         .back-btn {
             display: inline-flex;
             align-items: center;
@@ -46,6 +49,7 @@
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s;
         }
+
         .back-btn:hover {
             background: #14291F;
             border-color: #14291F;
@@ -58,9 +62,11 @@
     <div class="w-full max-w-md">
 
         <div class="text-center mb-8">
-            <div class="font-display text-[12px] tracking-widest uppercase text-gold mb-2">School Attendance</div>
-            <h1 class="text-2xl font-bold text-forest-deep">Attendance Register</h1>
-            <p class="text-sm text-ink-soft mt-2">Choose how you want to log in</p>
+            <div class="font-display text-[11px] tracking-widest uppercase text-gold mb-3">Attendance Register</div>
+            <h1 class="font-display text-[26px] sm:text-[32px] leading-snug text-forest-deep px-2">
+                Shaheed Nur Hossain Memorial School
+            </h1>
+            <!-- <p class="text-sm text-ink-soft mt-4">Welcome! Choose how you'd like to log in.</p> -->
         </div>
 
         <div id="roleSelect" class="space-y-4">
@@ -93,12 +99,14 @@
             <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div class="flex items-center justify-between mb-5 gap-3">
                     <div>
-                        <div class="font-display text-[11px] tracking-widest uppercase text-gold" id="roleLabel">Teacher Login</div>
+                        <div class="font-display text-[11px] tracking-widest uppercase text-gold" id="roleLabel">Teacher
+                            Login</div>
                         <h2 class="text-lg font-bold text-forest-deep mt-0.5">Enter your credentials</h2>
                     </div>
                     <button type="button" onclick="backToRole()" class="back-btn flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Back
                     </button>

@@ -15,10 +15,10 @@ def append_school_name(base_message):
     return f"{base_message}\n{settings.SCHOOL_FULL_NAME}"
 
 
-def build_absent_message(student_name, date_str):
+def build_absent_message(student, date_str):
     base = (
-        f"Dear Parents,\n"
-        f"Your child{student_name} was ABSENT on {date_str}. "
+        f"Dear Parents, {student.name}, Class: {student.class_name}, Roll: {student.roll_no} "
+        f"was ABSENT on {date_str}. Contact the Authority if this is a mistake."
     )
     return append_school_name(base)
 
