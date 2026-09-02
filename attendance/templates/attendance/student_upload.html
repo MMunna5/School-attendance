@@ -43,15 +43,33 @@
             </tbody>
         </table>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form id="studentUploadForm" method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="file" name="excel_file" accept=".xlsx" multiple required class="w-full text-sm mb-4">
-        <button type="submit"
-            class="w-full bg-forest text-white font-bold py-3 rounded-lg hover:bg-forest-deep transition">
-            Upload &amp; Import
+        <input type="file" name="excel_file" accept=".xlsx" multiple required class="w-full text-sm mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-forest/10 file:text-forest hover:file:bg-forest/20 cursor-pointer">
+        <button id="uploadSubmitBtn" type="submit"
+            class="w-full bg-forest text-white font-bold py-3 rounded-lg hover:bg-forest-deep transition flex items-center justify-center gap-2">
+            <span id="uploadBtnText">Upload &amp; Import</span>
         </button>
     </form>
 </div>
+
+<script>
+    document.getElementById('studentUploadForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('uploadSubmitBtn');
+        const text = document.getElementById('uploadBtnText');
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        text.innerHTML = `
+            <span class="inline-flex items-center gap-2">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Importing students... Please wait...
+            </span>
+        `;
+    });
+</script>
 
 {% if file_results %}
 <div class="max-w-lg mx-auto mt-6 space-y-3">
