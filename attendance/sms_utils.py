@@ -4,21 +4,23 @@ from django.conf import settings
 
 def append_school_name(base_message):
     """
-    Uses the short school name (SNHMSC) when it keeps the message within
+    Uses the short school name when it keeps the message within
     one SMS segment (160 chars). If the message is already longer than
     that (multi-part SMS regardless), the fuller school name is used
     instead since there's no length benefit left to protect.
     """
-    short_version = f"{base_message}\n{settings.SCHOOL_SHORT_NAME}"
+    short_name = getattr(settings, 'SCHOOL_SHORT_NAME', 'School')
+    full_name = getattr(settings, 'SCHOOL_FULL_NAME', short_name)
+    short_version = f"{base_message}\n{short_name}"
     if len(short_version) <= 160:
         return short_version
-    return f"{base_message}\n{settings.SCHOOL_FULL_NAME}"
+    return f"{base_message}\n{full_name}"
 
 
-def build_absent_message(student, date_str):
+def build_absent_message(student_name, date_str):
     base = (
-        f"Dear Parents, {student.name}, Class: {student.class_name}, Roll: {student.roll_no} "
-        f"was ABSENT on {date_str}. Contact the Authority if this is a mistake."
+        f"Dear Parents,\n"
+        f"Your child {student_name} was ABSENT on {date_str}. "
     )
     return append_school_name(base)
 
@@ -33,14 +35,20 @@ def build_teacher_absent_message(teacher_name, date_str):
 
 
 def send_sms(number, message):
+    token = getattr(settings, 'SMS_TOKEN', None)
+    if not token:
+        return False, "SMS token is not configured in environment variables."
+
     url = "https://api.bdbulksms.net/api.php"
     params = {
-        "token": settings.SMS_TOKEN,
+        "token": token,
         "to": number,
         "message": message,
     }
     try:
         response = requests.get(url, params=params, timeout=10)
-        return "success" in response.text.lower() or response.status_code == 200, response.text
-    except requests.RequestException as e:
-        return False, str(e)
+        is_success = "success" in response.text.lower() or response.status_code == 200
+        return is_success, response.text
+    except requests.RequestException:
+        # Avoid exposing token or sensitive parameters in error messages
+        return False, "SMS delivery failed due to a network connection error."
