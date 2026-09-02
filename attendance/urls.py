@@ -25,5 +25,5 @@ urlpatterns = [
 
     path('admin-panel/attendance-history/', views.attendance_history, name='attendance_history'),
     path('admin-panel/attendance-export/', views.export_attendance, name='export_attendance'),
-    
+    path('admin-panel/attendance/<int:student_id>/correct/', views.correct_attendance, name='correct_attendance'),
 ]

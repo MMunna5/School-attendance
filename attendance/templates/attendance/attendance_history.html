@@ -39,6 +39,12 @@
         </select>
     </div>
 
+    <div class="flex-1 min-w-[120px]">
+        <label class="block text-xs font-semibold text-ink-soft mb-1.5">Roll</label>
+        <input type="text" name="roll" value="{{ roll_filter }}" placeholder="e.g. 12"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-forest">
+    </div>
+
     <div class="flex-1 min-w-[160px]">
         <label class="block text-xs font-semibold text-ink-soft mb-1.5">Date</label>
         <input type="date" name="date" value="{{ date_filter }}"
@@ -58,7 +64,7 @@
     {% endif %}
 </form>
 
-{% if class_filter %}
+{% if class_filter or roll_filter %}
 <div class="grid grid-cols-3 gap-3 mb-5">
     <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
         <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
@@ -70,7 +76,7 @@
     </div>
     <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
         <div class="text-[11px] uppercase tracking-widest text-ink-soft">Class</div>
-        <div class="text-xl font-bold text-forest-deep">{{ class_filter }}</div>
+        <div class="text-xl font-bold text-forest-deep">{{ class_filter|default:"All" }}</div>
     </div>
 </div>
 
@@ -86,13 +92,47 @@
             <div class="font-semibold text-forest-deep truncate">{{ r.student.name }}</div>
             <div class="text-xs text-ink-soft">Class {{ r.student.class_name }}{{ r.student.section }}</div>
         </div>
-        <div class="flex-shrink-0">
+        <div class="flex-shrink-0 flex items-center gap-2">
             {% if r.status == 'present' %}
             <span
                 class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-present">Present</span>
+            <form method="post" action="{% url 'correct_attendance' r.student.id %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ date_filter }}">
+                <input type="hidden" name="class" value="{{ class_filter }}">
+                <input type="hidden" name="roll" value="{{ roll_filter }}">
+                <input type="hidden" name="status" value="absent">
+                <label class="flex items-center gap-1 text-[10px] text-ink-soft mb-1 cursor-pointer">
+                    <input type="checkbox" name="send_sms" value="yes" class="w-3 h-3 accent-absent">
+                    Send SMS
+                </label>
+                <button type="submit"
+                    class="flex items-center gap-1 bg-red-50 text-absent border border-red-200 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Mark Absent
+                </button>
+            </form>
             {% elif r.status == 'absent' %}
             <span
                 class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-absent">Absent</span>
+            <form method="post" action="{% url 'correct_attendance' r.student.id %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ date_filter }}">
+                <input type="hidden" name="class" value="{{ class_filter }}">
+                <input type="hidden" name="roll" value="{{ roll_filter }}">
+                <input type="hidden" name="status" value="present">
+                <button type="submit"
+                    class="flex items-center gap-1 bg-green-50 text-present border border-green-200 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-green-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Mark Present
+                </button>
+            </form>
             {% else %}
             <span
                 class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-ink-soft">Not
@@ -104,13 +144,13 @@
 </div>
 {% else %}
 <div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
-    No attendance records found for this class and date.
+    No attendance records found for this class/roll and date.
 </div>
 {% endif %}
 
 {% else %}
 <div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
-    Please select a class and date to view attendance history.
+    Please select a class and/or enter a roll number to view attendance history.
 </div>
 {% endif %}
 

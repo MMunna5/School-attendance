@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from .models import Teacher, Student, Attendance, TeacherAttendance
+from django.urls import reverse
 from .sms_utils import build_absent_message, build_teacher_absent_message, send_sms
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -234,7 +235,7 @@ def mark_attendance(request):
 
                 if not is_present:
                     if student.parent_mobile:
-                        message = build_absent_message(student.name, date_str)
+                        message = build_absent_message(student, date_str)
                         success, resp = send_sms(student.parent_mobile, message)
                         if success:
                             sms_sent_count += 1
@@ -735,39 +736,59 @@ def mark_teacher_attendance(request):
     today = timezone.now().date()
     date_str = today.strftime("%d-%b-%y")
     saved = False
+    saved_type = None
     sms_sent_count = 0
     sms_warning = None
 
-    already_marked = TeacherAttendance.objects.filter(date=today).exists()
+    full_already_marked = TeacherAttendance.objects.filter(
+        date=today, teacher__employment_type=Teacher.EMPLOYMENT_FULL
+    ).exists()
+    part_already_marked = TeacherAttendance.objects.filter(
+        date=today, teacher__employment_type=Teacher.EMPLOYMENT_PART
+    ).exists()
 
-    if request.method == 'POST' and not already_marked:
-        teachers = Teacher.objects.all().order_by('id')
-        sms_failed = []
-        for teacher in teachers:
-            status = request.POST.get(f'tatt_{teacher.id}', 'present')
-            is_present = status == 'present'
+    if request.method == 'POST':
+        section = request.POST.get('section')
 
-            TeacherAttendance.objects.update_or_create(
-                teacher=teacher,
-                date=today,
-                defaults={'is_present': is_present}
-            )
+        if section == 'full' and not full_already_marked:
+            employment_type = Teacher.EMPLOYMENT_FULL
+        elif section == 'part' and not part_already_marked:
+            employment_type = Teacher.EMPLOYMENT_PART
+        else:
+            employment_type = None
 
-            if not is_present:
-                if teacher.mobile:
-                    message = build_teacher_absent_message(teacher.name, date_str)
-                    success, resp = send_sms(teacher.mobile, message)
-                    if success:
-                        sms_sent_count += 1
+        if employment_type:
+            section_teachers = Teacher.objects.filter(employment_type=employment_type).order_by('id')
+            sms_failed = []
+            for teacher in section_teachers:
+                status = request.POST.get(f'tatt_{teacher.id}', 'present')
+                is_present = status == 'present'
+
+                TeacherAttendance.objects.update_or_create(
+                    teacher=teacher,
+                    date=today,
+                    defaults={'is_present': is_present}
+                )
+
+                if not is_present:
+                    if teacher.mobile:
+                        message = build_teacher_absent_message(teacher.name, date_str)
+                        success, resp = send_sms(teacher.mobile, message)
+                        if success:
+                            sms_sent_count += 1
+                        else:
+                            sms_failed.append(teacher.name)
                     else:
-                        sms_failed.append(teacher.name)
-                else:
-                    sms_failed.append(f"{teacher.name} (no phone)")
+                        sms_failed.append(f"{teacher.name} (no phone)")
 
-        saved = True
-        already_marked = True
-        if sms_failed:
-            sms_warning = f"SMS could not be sent to: {', '.join(sms_failed)}"
+            saved = True
+            saved_type = section
+            if section == 'full':
+                full_already_marked = True
+            else:
+                part_already_marked = True
+            if sms_failed:
+                sms_warning = f"SMS could not be sent to: {', '.join(sms_failed)}"
 
     teachers = Teacher.objects.all().order_by('id')
     attendance_map = {
@@ -785,12 +806,10 @@ def mark_teacher_attendance(request):
     full_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_FULL]
     part_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_PART]
 
-    if already_marked:
-        present_count = TeacherAttendance.objects.filter(date=today, is_present=True).count()
-        absent_count = TeacherAttendance.objects.filter(date=today, is_present=False).count()
-    else:
-        present_count = 0
-        absent_count = 0
+    full_present = sum(1 for r in full_time_rows if r['is_present']) if full_already_marked else 0
+    full_absent = len(full_time_rows) - full_present if full_already_marked else 0
+    part_present = sum(1 for r in part_time_rows if r['is_present']) if part_already_marked else 0
+    part_absent = len(part_time_rows) - part_present if part_already_marked else 0
 
     return render(request, 'attendance/mark_teacher_attendance.html', {
         'teachers': teachers,
@@ -799,11 +818,17 @@ def mark_teacher_attendance(request):
         'part_time_rows': part_time_rows,
         'today': today,
         'saved': saved,
+        'saved_type': saved_type,
         'sms_sent_count': sms_sent_count,
         'sms_warning': sms_warning,
-        'already_marked': already_marked,
-        'present_count': present_count,
-        'absent_count': absent_count,
+        'full_already_marked': full_already_marked,
+        'part_already_marked': part_already_marked,
+        'full_total': len(full_time_rows),
+        'part_total': len(part_time_rows),
+        'full_present': full_present,
+        'full_absent': full_absent,
+        'part_present': part_present,
+        'part_absent': part_absent,
         'total_teachers': teachers.count(),
     })
 
@@ -901,16 +926,23 @@ def export_teacher_attendance(request):
 def attendance_history(request):
     class_names = Student.objects.values_list('class_name', flat=True).distinct().order_by('class_name')
     class_filter = request.GET.get('class', '').strip()
+    roll_filter = request.GET.get('roll', '').strip()
     date_filter = request.GET.get('date', '') or timezone.now().date().isoformat()
 
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
 
     records = []
-    if class_filter:
-        students = Student.objects.filter(class_name=class_filter).order_by('roll_no')
+    if class_filter or roll_filter:
+        students = Student.objects.all()
+        if class_filter:
+            students = students.filter(class_name=class_filter)
+        if roll_filter:
+            students = students.filter(roll_no__icontains=roll_filter)
+        students = students.order_by('class_name', 'section', 'roll_no')
+
         attendance_map = {
             a.student_id: a.is_present
-            for a in Attendance.objects.filter(student__class_name=class_filter, date=date_filter)
+            for a in Attendance.objects.filter(student__in=students, date=date_filter)
         }
         for student in students:
             status = attendance_map.get(student.id)
@@ -925,12 +957,12 @@ def attendance_history(request):
     return render(request, 'attendance/attendance_history.html', {
         'all_classes': all_classes,
         'class_filter': class_filter,
+        'roll_filter': roll_filter,
         'date_filter': date_filter,
         'records': records,
         'present_count': present_count,
         'absent_count': absent_count,
     })
-
 
 @login_required
 @user_passes_test(is_admin)
@@ -1011,3 +1043,34 @@ def export_attendance(request):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
+@login_required
+@user_passes_test(is_admin)
+def correct_attendance(request, student_id):
+    """Admin-only: fix a wrongly marked attendance record for a given date."""
+    if request.method != 'POST':
+        return redirect('attendance_history')
+
+    date_str = request.POST.get('date')
+    class_filter = request.POST.get('class', '')
+    roll_filter = request.POST.get('roll', '')
+    new_status = request.POST.get('status')  # 'present' or 'absent'
+    send_sms_flag = request.POST.get('send_sms') == 'yes'
+
+    redirect_url = f"{reverse('attendance_history')}?class={class_filter}&roll={roll_filter}&date={date_str}"
+
+    if new_status not in ('present', 'absent'):
+        return redirect(redirect_url)
+
+    student = get_object_or_404(Student, id=student_id)
+    Attendance.objects.update_or_create(
+        student=student,
+        date=date_str,
+        defaults={'is_present': new_status == 'present'}
+    )
+
+    if new_status == 'absent' and send_sms_flag and student.parent_mobile:
+        message = build_absent_message(student, date_str)
+        send_sms(student.parent_mobile, message)
+
+    return redirect(redirect_url)
