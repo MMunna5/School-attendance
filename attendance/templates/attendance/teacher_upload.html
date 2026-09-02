@@ -47,9 +47,6 @@
             </tbody>
         </table>
     </div>
-    <p class="text-xs text-ink-soft mb-4">
-        Class = একটা (`9`) অথবা কমা দিয়ে একাধিক (`8,10`)
-    </p>
     <form id="teacherUploadForm" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="employment_type" value="{{ employment_type }}">
