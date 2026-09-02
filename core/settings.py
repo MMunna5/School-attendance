@@ -7,10 +7,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 
-# Load environment variables from .env file if present
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file if present
+load_dotenv(BASE_DIR / ".env", override=True)
+
+from django.core.management.utils import get_random_secret_key
 
 # Security: Load SECRET_KEY from environment
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -20,7 +22,8 @@ DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 
 if not SECRET_KEY:
     if DEBUG:
-        SECRET_KEY = "django-insecure-dev-only-local-secret-key-replace-me"
+        # Dynamically generate a random secret key for local development
+        SECRET_KEY = get_random_secret_key()
     else:
         raise ValueError("The SECRET_KEY environment variable must be set when DEBUG=False!")
 
@@ -160,3 +163,14 @@ SCHOOL_SHORT_NAME = os.environ.get("SCHOOL_SHORT_NAME", "Shaheed Nur Hossain Mem
 SCHOOL_FULL_NAME = os.environ.get(
     "SCHOOL_FULL_NAME", "Shaheed Nur Hossain Memorial School, Biral, Dinajpur"
 )
+
+# Configurable initial password for bulk-uploaded teachers
+DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "12345")
+
+# Production Security Hardening
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = "DENY"

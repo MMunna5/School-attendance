@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db import IntegrityError
+from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
 from .sms_utils import build_absent_message, build_teacher_absent_message, send_sms
@@ -681,7 +682,7 @@ def teacher_upload(request):
                 if not user:
                     user = User.objects.create_user(
                         username=clean_mobile,
-                        password="12345",
+                        password=getattr(settings, "DEFAULT_TEACHER_PASSWORD", "12345"),
                     )
 
                 obj, was_created = Teacher.objects.update_or_create(
