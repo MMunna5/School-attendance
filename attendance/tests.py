@@ -177,3 +177,75 @@ class SMSUtilityTests(TestCase):
             success, text = send_sms("01700000000", "Test message")
             self.assertFalse(success)
             self.assertIn("not configured", text)
+
+
+import io
+from openpyxl import Workbook
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+
+class StudentUploadTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username="admin_uploader",
+            password="password123",
+        )
+        self.client.login(username="admin_uploader", password="password123")
+
+    def test_student_bulk_upload_create_and_update(self):
+        # 1. First upload: create two students
+        wb = Workbook()
+        ws = wb.active
+        ws.append(["Roll", "Name", "Class", "Section", "Session", "Phone"])
+        ws.append(["1", "Student One", "8", "A", "2026", "01711111111"])
+        ws.append(["2", "Student Two", "8", "A", "2026", "01722222222"])
+
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+
+        uploaded = SimpleUploadedFile(
+            "students_class_8.xlsx",
+            out.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response = self.client.post(
+            reverse('student_upload'),
+            {'excel_file': [uploaded]},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Results")
+        self.assertContains(response, "2 added, 0 updated")
+
+        self.assertTrue(Student.objects.filter(class_name="8", section="A", roll_no="1").exists())
+        self.assertTrue(Student.objects.filter(class_name="8", section="A", roll_no="2").exists())
+
+        # 2. Second upload: update student 1 name and add student 3
+        wb2 = Workbook()
+        ws2 = wb2.active
+        ws2.append(["Roll", "Name", "Class", "Section", "Session", "Phone"])
+        ws2.append(["1", "Student One Updated", "8", "A", "2026", "01711111111"])
+        ws2.append(["3", "Student Three", "8", "A", "2026", "01733333333"])
+
+        out2 = io.BytesIO()
+        wb2.save(out2)
+        out2.seek(0)
+
+        uploaded2 = SimpleUploadedFile(
+            "students_class_8_v2.xlsx",
+            out2.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response2 = self.client.post(
+            reverse('student_upload'),
+            {'excel_file': [uploaded2]},
+        )
+        self.assertEqual(response2.status_code, 200)
+        self.assertContains(response2, "1 added, 1 updated")
+
+        s1 = Student.objects.get(class_name="8", section="A", roll_no="1")
+        self.assertEqual(s1.name, "Student One Updated")
+

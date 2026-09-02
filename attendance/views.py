@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
@@ -418,9 +418,10 @@ def student_upload(request):
                 continue
 
             try:
-                wb = openpyxl.load_workbook(excel_file, data_only=True)
+                wb = openpyxl.load_workbook(excel_file, data_only=True, read_only=True)
                 ws = wb.active
                 rows = list(ws.iter_rows(values_only=True))
+                wb.close()
             except Exception:
                 file_results.append({
                     "filename": excel_file.name,
@@ -450,49 +451,107 @@ def student_upload(request):
                 })
                 continue
 
-            created, updated, skipped = 0, 0, 0
+            parsed_rows = {}
+            skipped = 0
             detected_classes = set()
 
             for row in rows[1:]:
-                if not row or len(row) < 3:
+                # Ignore completely blank/empty rows silently
+                if not row or not any(cell is not None and str(cell).strip() != "" for cell in row):
+                    continue
+
+                if len(row) < 3:
                     skipped += 1
                     continue
 
-                roll = row[0]
-                name = row[1]
-                class_name = row[2]
-                section = row[3] or "" if len(row) > 3 else ""
-                phone = row[5] if len(row) > 5 else None
+                roll_raw = row[0]
+                name_raw = row[1]
+                class_raw = row[2]
+                section_raw = row[3] if len(row) > 3 and row[3] is not None else ""
+                phone_raw = row[5] if len(row) > 5 and row[5] is not None else ""
 
-                if not roll or not name or not class_name:
+                roll_str = str(roll_raw).strip() if roll_raw is not None else ""
+                if roll_str.endswith(".0"):
+                    roll_str = roll_str[:-2]
+
+                class_str = str(class_raw).strip() if class_raw is not None else ""
+                if class_str.endswith(".0"):
+                    class_str = class_str[:-2]
+
+                name_str = str(name_raw).strip() if name_raw is not None else ""
+                section_str = str(section_raw).strip()
+                if section_str.endswith(".0"):
+                    section_str = section_str[:-2]
+
+                phone_str = str(phone_raw).strip()
+                if phone_str.endswith(".0"):
+                    phone_str = phone_str[:-2]
+                if phone_str and not phone_str.startswith("0") and phone_str.isdigit():
+                    phone_str = "0" + phone_str
+
+                if not roll_str or not name_str or not class_str:
                     skipped += 1
                     continue
 
-                clean_phone = str(phone).strip() if phone else ""
-                if clean_phone and not clean_phone.startswith("0"):
-                    clean_phone = "0" + clean_phone
+                key = (class_str, section_str, roll_str)
+                parsed_rows[key] = {
+                    "roll_no": roll_str,
+                    "class_name": class_str,
+                    "section": section_str,
+                    "name": name_str,
+                    "parent_mobile": phone_str,
+                }
+                detected_classes.add(f"{class_str}{section_str}")
 
-                obj, was_created = Student.objects.update_or_create(
-                    class_name=str(class_name).strip(),
-                    section=str(section).strip(),
-                    roll_no=str(roll).strip(),
-                    defaults={
-                        "name": str(name).strip(),
-                        "parent_mobile": clean_phone,
-                    }
-                )
-                detected_classes.add(f"{class_name}{section}")
-                if was_created:
-                    created += 1
-                else:
-                    updated += 1
-
-            if created == 0 and updated == 0:
+            if not parsed_rows:
                 file_results.append({
                     "filename": excel_file.name,
                     "error": f"No valid rows found. All {skipped} row(s) were missing a Roll, Name, or Class value.",
                 })
                 continue
+
+            # Batch lookup existing students for detected classes in 1 query
+            classes_in_file = {k[0] for k in parsed_rows.keys()}
+            existing_students = {
+                (s.class_name, s.section, s.roll_no): s
+                for s in Student.objects.filter(class_name__in=classes_in_file)
+            }
+
+            to_create = []
+            to_update = []
+            created = 0
+            updated = 0
+
+            for key, data in parsed_rows.items():
+                if key in existing_students:
+                    s = existing_students[key]
+                    changed = False
+                    if s.name != data["name"]:
+                        s.name = data["name"]
+                        changed = True
+                    if s.parent_mobile != data["parent_mobile"]:
+                        s.parent_mobile = data["parent_mobile"]
+                        changed = True
+                    if changed:
+                        to_update.append(s)
+                    updated += 1
+                else:
+                    new_s = Student(
+                        class_name=data["class_name"],
+                        section=data["section"],
+                        roll_no=data["roll_no"],
+                        name=data["name"],
+                        parent_mobile=data["parent_mobile"],
+                    )
+                    to_create.append(new_s)
+                    existing_students[key] = new_s
+                    created += 1
+
+            with transaction.atomic():
+                if to_create:
+                    Student.objects.bulk_create(to_create, batch_size=500)
+                if to_update:
+                    Student.objects.bulk_update(to_update, fields=["name", "parent_mobile"], batch_size=500)
 
             file_results.append({
                 "filename": excel_file.name,
@@ -618,9 +677,10 @@ def teacher_upload(request):
                 continue
 
             try:
-                wb = openpyxl.load_workbook(excel_file, data_only=True)
+                wb = openpyxl.load_workbook(excel_file, data_only=True, read_only=True)
                 ws = wb.active
                 rows = list(ws.iter_rows(values_only=True))
+                wb.close()
             except Exception:
                 file_results.append({
                     "filename": excel_file.name,
@@ -650,10 +710,13 @@ def teacher_upload(request):
                 })
                 continue
 
-            created, updated, skipped = 0, 0, 0
+            parsed_teachers = {}
+            skipped = 0
 
             for row in rows[1:]:
-                if not row or len(row) < 1:
+                if not row or not any(cell is not None and str(cell).strip() != "" for cell in row):
+                    continue
+                if len(row) < 1:
                     skipped += 1
                     continue
 
@@ -661,48 +724,71 @@ def teacher_upload(request):
                 mobile = row[1] if len(row) > 1 else ""
                 assigned_class = row[2] if len(row) > 2 else ""
 
-                if not name:
-                    skipped += 1
-                    continue
-
+                name_str = str(name).strip() if name is not None else ""
                 clean_mobile = str(mobile).strip() if mobile else ""
                 if clean_mobile.endswith('.0'):
                     clean_mobile = clean_mobile[:-2]
                 if clean_mobile and not clean_mobile.startswith("0") and clean_mobile.isdigit():
                     clean_mobile = "0" + clean_mobile
 
-                if not clean_mobile:
+                if not name_str or not clean_mobile:
                     skipped += 1
                     continue
 
-                name_str = str(name).strip()
                 class_str = str(assigned_class).strip() if assigned_class else ""
+                if class_str.endswith('.0'):
+                    class_str = class_str[:-2]
 
-                user = User.objects.filter(username=clean_mobile).first()
-                if not user:
-                    user = User.objects.create_user(
-                        username=clean_mobile,
-                        password=getattr(settings, "DEFAULT_TEACHER_PASSWORD", "12345"),
-                    )
+                parsed_teachers[clean_mobile] = {
+                    "name": name_str,
+                    "mobile": clean_mobile,
+                    "assigned_classes": class_str,
+                }
 
-                obj, was_created = Teacher.objects.update_or_create(
-                    name=name_str,
-                    mobile=clean_mobile,
-                    defaults={
-                        "assigned_classes": class_str,
-                        "user": user,
-                        "employment_type": employment_type,
-                    }
-                )
+            if not parsed_teachers:
+                file_results.append({
+                    "filename": excel_file.name,
+                    "error": f"No valid rows found. All {skipped} row(s) were missing a Name or Number value.",
+                })
+                continue
 
-                if obj.user_id != user.id:
-                    obj.user = user
-                    obj.save(update_fields=["user"])
+            mobiles = list(parsed_teachers.keys())
+            existing_users = {u.username: u for u in User.objects.filter(username__in=mobiles)}
+            existing_teachers = {t.mobile: t for t in Teacher.objects.filter(mobile__in=mobiles).select_related('user')}
 
-                if was_created:
-                    created += 1
-                else:
-                    updated += 1
+            created = 0
+            updated = 0
+            default_pw = getattr(settings, "DEFAULT_TEACHER_PASSWORD", "12345")
+
+            with transaction.atomic():
+                for mobile, data in parsed_teachers.items():
+                    user = existing_users.get(mobile)
+                    if not user:
+                        user = User.objects.create_user(
+                            username=mobile,
+                            password=default_pw,
+                        )
+                        existing_users[mobile] = user
+
+                    teacher = existing_teachers.get(mobile)
+                    if teacher:
+                        teacher.name = data["name"]
+                        teacher.assigned_classes = data["assigned_classes"]
+                        teacher.employment_type = employment_type
+                        if teacher.user_id != user.id:
+                            teacher.user = user
+                        teacher.save()
+                        updated += 1
+                    else:
+                        new_t = Teacher.objects.create(
+                            name=data["name"],
+                            mobile=mobile,
+                            assigned_classes=data["assigned_classes"],
+                            user=user,
+                            employment_type=employment_type,
+                        )
+                        existing_teachers[mobile] = new_t
+                        created += 1
 
             file_results.append({
                 "filename": excel_file.name,
