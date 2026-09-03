@@ -48,7 +48,7 @@ def send_sms(number, message):
     }
     try:
         response = requests.get(url, params=params, timeout=10)
-        is_success = "success" in response.text.lower() or response.status_code == 200
+        is_success = response.status_code == 200 and "success" in response.text.lower()
         return is_success, response.text
     except requests.RequestException:
         # Avoid exposing token or sensitive parameters in error messages
