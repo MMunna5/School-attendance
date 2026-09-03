@@ -21,6 +21,7 @@ def build_absent_message(student_name, date_str):
     base = (
         f"Dear Parents,\n"
         f"Your child {student_name} was ABSENT on {date_str}. "
+        f"Contact the Authority if this is a mistake."
     )
     return append_school_name(base)
 
