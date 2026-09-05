@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
@@ -35,7 +36,9 @@ def send_absent_sms(people, message_builder, date_str, number_getter, message_kw
     if not people_with_numbers:
         return 0, people_without_numbers
 
-    results = [deliver(person) for person in people_with_numbers]
+    worker_count = min(2, len(people_with_numbers))
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        results = list(executor.map(deliver, people_with_numbers))
 
     sent_count = sum(1 for result in results if result)
     failed = people_without_numbers + [
