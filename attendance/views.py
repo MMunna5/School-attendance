@@ -241,18 +241,19 @@ def mark_attendance(request):
     sms_warning = None
 
     if request.method == 'POST' and current_class and not already_marked:
-        post_class = request.POST.get('class', '').strip()
-        if post_class and post_class in class_choices and post_class != current_class:
-            current_class = post_class
-            students = load_students(current_class)
-            all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
-            already_marked = Attendance.objects.filter(
+        absent_students = []
+        with transaction.atomic():
+            post_class = request.POST.get('class', '').strip()
+            if post_class and post_class in class_choices and post_class != current_class:
+                current_class = post_class
+                students = load_students(current_class)
+                all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
+
+            already_marked = Attendance.objects.select_for_update().filter(
                 student__class_name=current_class, date=today
             ).exists()
 
-        if not already_marked:
-            absent_students = []
-            with transaction.atomic():
+            if not already_marked:
                 for student in students:
                     status = request.POST.get(f'att_{student.id}', 'present')
                     is_present = status == 'present'
@@ -266,6 +267,7 @@ def mark_attendance(request):
                     if not is_present:
                         absent_students.append(student)
 
+        if not already_marked:
             sms_sent_count, sms_failed = send_absent_sms(
                 absent_students,
                 build_absent_message,
