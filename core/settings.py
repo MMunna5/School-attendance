@@ -165,7 +165,7 @@ SCHOOL_FULL_NAME = os.environ.get(
 )
 
 # Configurable initial password for bulk-uploaded teachers
-DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "")
+DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "12345")
 
 # Production Security Hardening
 if not DEBUG:
