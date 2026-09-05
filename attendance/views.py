@@ -253,6 +253,11 @@ def mark_attendance(request):
 
         if not already_marked:
             absent_students = []
+            existing_attendance_ids = set(
+                Attendance.objects.filter(
+                    student__class_name=current_class, date=today
+                ).values_list('student_id', flat=True)
+            )
             for student in students:
                 status = request.POST.get(f'att_{student.id}', 'present')
                 is_present = status == 'present'
@@ -263,7 +268,7 @@ def mark_attendance(request):
                     defaults={'is_present': is_present}
                 )
 
-                if not is_present:
+                if not is_present and student.id not in existing_attendance_ids:
                     absent_students.append(student)
 
             sms_sent_count, sms_failed = send_absent_sms(

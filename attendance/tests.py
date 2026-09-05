@@ -3,6 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils import timezone
+from datetime import timedelta
 import requests
 
 from .models import Teacher, Student, Attendance, TeacherAttendance
@@ -109,7 +110,9 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(t_att.teacher, self.teacher)
         self.assertTrue(t_att.is_present)
 
-    def test_new_student_can_be_marked_when_class_attendance_is_partial(self):
+    @patch('attendance.views.send_sms')
+    def test_new_student_can_be_marked_without_resending_existing_absence_sms(self, mock_send_sms):
+        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
         Attendance.objects.create(
             student=self.student,
             date=timezone.now().date(),
@@ -134,6 +137,36 @@ class ModelAndAttendanceTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Attendance.objects.get(student=new_student, date=timezone.now().date()).is_present)
+        mock_send_sms.assert_called_once()
+
+    @patch('attendance.views.send_sms')
+    def test_same_day_resubmission_does_not_send_duplicate_sms(self, mock_send_sms):
+        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+        client = Client()
+        client.login(username="t_rahim", password="password123")
+        post_data = {f'att_{self.student.id}': 'absent'}
+
+        first_response = client.post(reverse('attendance_page'), post_data)
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(mock_send_sms.call_count, 1)
+
+        second_response = client.post(reverse('attendance_page'), post_data)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(mock_send_sms.call_count, 1)
+
+    def test_previous_day_status_does_not_change_next_day_default_present(self):
+        Attendance.objects.create(
+            student=self.student,
+            date=timezone.now().date() - timedelta(days=1),
+            is_present=False,
+        )
+        client = Client()
+        client.login(username="t_rahim", password="password123")
+
+        response = client.get(reverse('attendance_page'))
+        self.assertFalse(response.context['already_marked'])
+        self.assertEqual(response.context['student_rows'][0]['present_checked'], 'checked')
+        self.assertEqual(response.context['student_rows'][0]['absent_checked'], '')
 
 
 class ExportAndReportTests(TestCase):
