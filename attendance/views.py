@@ -6,7 +6,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
@@ -23,7 +22,7 @@ TEACHER_EXCEL_HEADERS = ["Name", "Number", "Class"]
 
 
 def send_absent_sms(people, message_builder, date_str, number_getter):
-    """Send absence alerts concurrently so one slow SMS does not block every other alert."""
+    """Send absence alerts one at a time to avoid provider rate-limit failures."""
     people_with_numbers = [person for person in people if number_getter(person)]
     people_without_numbers = [f"{person.name} (no phone)" for person in people if not number_getter(person)]
 
@@ -35,9 +34,7 @@ def send_absent_sms(people, message_builder, date_str, number_getter):
     if not people_with_numbers:
         return 0, people_without_numbers
 
-    worker_count = min(8, len(people_with_numbers))
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        results = list(executor.map(deliver, people_with_numbers))
+    results = [deliver(person) for person in people_with_numbers]
 
     sent_count = sum(1 for result in results if result)
     failed = people_without_numbers + [
