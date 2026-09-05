@@ -229,10 +229,11 @@ def mark_attendance(request):
 
     already_marked = False
     if current_class:
-        already_marked = Attendance.objects.filter(
-            student__class_name=current_class,
-            date=today
-        ).exists()
+        class_student_count = students.count()
+        marked_student_count = Attendance.objects.filter(
+            student__class_name=current_class, date=today
+        ).count()
+        already_marked = class_student_count > 0 and marked_student_count >= class_student_count
 
     saved = False
     sms_sent_count = 0
@@ -244,9 +245,11 @@ def mark_attendance(request):
             current_class = post_class
             students = load_students(current_class)
             all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
-            already_marked = Attendance.objects.filter(
+            class_student_count = students.count()
+            marked_student_count = Attendance.objects.filter(
                 student__class_name=current_class, date=today
-            ).exists()
+            ).count()
+            already_marked = class_student_count > 0 and marked_student_count >= class_student_count
 
         if not already_marked:
             absent_students = []
@@ -289,7 +292,10 @@ def mark_attendance(request):
     student_rows = [
         {
             'student': s,
+            'is_marked': s.id in attendance_map,
             'is_present': attendance_map.get(s.id, True),
+            'present_checked': 'checked' if s.id not in attendance_map or attendance_map[s.id] else '',
+            'absent_checked': 'checked' if s.id in attendance_map and not attendance_map[s.id] else '',
         }
         for s in students
     ]

@@ -109,6 +109,32 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(t_att.teacher, self.teacher)
         self.assertTrue(t_att.is_present)
 
+    def test_new_student_can_be_marked_when_class_attendance_is_partial(self):
+        Attendance.objects.create(
+            student=self.student,
+            date=timezone.now().date(),
+            is_present=True,
+        )
+        new_student = Student.objects.create(
+            roll_no="02",
+            name="New Student",
+            class_name="Ten",
+            section="A",
+            parent_mobile="01800000001",
+        )
+        client = Client()
+        client.login(username="t_rahim", password="password123")
+
+        response = client.get(reverse('attendance_page'))
+        self.assertFalse(response.context['already_marked'])
+
+        response = client.post(reverse('attendance_page'), {
+            f'att_{self.student.id}': 'present',
+            f'att_{new_student.id}': 'absent',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Attendance.objects.get(student=new_student, date=timezone.now().date()).is_present)
+
 
 class ExportAndReportTests(TestCase):
     def setUp(self):
