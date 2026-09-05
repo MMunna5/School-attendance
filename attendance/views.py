@@ -273,7 +273,7 @@ def mark_attendance(request):
                 lambda student: student.parent_mobile,
                 lambda student: {
                     'roll_no': student.roll_no,
-                    'class_name': student.class_name,
+                    'class_name': f"{student.class_name}{student.section}".strip(),
                 },
             )
 
