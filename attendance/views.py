@@ -794,7 +794,13 @@ def teacher_upload(request):
 
             created = 0
             updated = 0
-            default_pw = getattr(settings, "DEFAULT_TEACHER_PASSWORD", "12345")
+            default_pw = getattr(settings, "DEFAULT_TEACHER_PASSWORD", "")
+            if not default_pw:
+                file_results.append({
+                    "filename": excel_file.name,
+                    "error": "DEFAULT_TEACHER_PASSWORD is not configured. Set it in the deployment environment before importing teachers.",
+                })
+                continue
 
             with transaction.atomic():
                 for mobile, data in parsed_teachers.items():
@@ -1192,7 +1198,12 @@ def correct_attendance(request, student_id):
     )
 
     if new_status == 'absent' and send_sms_flag and student.parent_mobile:
-        message = build_absent_message(student, date_str)
+        message = build_absent_message(
+            student.name,
+            date_str,
+            roll_no=student.roll_no,
+            class_name=f"{student.class_name}{student.section}".strip(),
+        )
         send_sms(student.parent_mobile, message)
 
     return redirect(redirect_url)

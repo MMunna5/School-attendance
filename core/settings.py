@@ -165,12 +165,16 @@ SCHOOL_FULL_NAME = os.environ.get(
 )
 
 # Configurable initial password for bulk-uploaded teachers
-DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "12345")
+DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "")
 
 # Production Security Hardening
 if not DEBUG:
+    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() in ("true", "1", "yes")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "DENY"
