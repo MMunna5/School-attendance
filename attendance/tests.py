@@ -110,9 +110,7 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(t_att.teacher, self.teacher)
         self.assertTrue(t_att.is_present)
 
-    @patch('attendance.views.send_sms')
-    def test_new_student_can_be_marked_without_resending_existing_absence_sms(self, mock_send_sms):
-        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+    def test_class_is_locked_after_partial_attendance(self):
         Attendance.objects.create(
             student=self.student,
             date=timezone.now().date(),
@@ -129,15 +127,9 @@ class ModelAndAttendanceTests(TestCase):
         client.login(username="t_rahim", password="password123")
 
         response = client.get(reverse('attendance_page'))
-        self.assertFalse(response.context['already_marked'])
-
-        response = client.post(reverse('attendance_page'), {
-            f'att_{self.student.id}': 'present',
-            f'att_{new_student.id}': 'absent',
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(Attendance.objects.get(student=new_student, date=timezone.now().date()).is_present)
-        mock_send_sms.assert_called_once()
+        self.assertTrue(response.context['already_marked'])
+        self.assertContains(response, "Attendance for this class has already been taken today.")
+        self.assertFalse(Attendance.objects.filter(student=new_student, date=timezone.now().date()).exists())
 
     @patch('attendance.views.send_sms')
     def test_same_day_resubmission_does_not_send_duplicate_sms(self, mock_send_sms):
