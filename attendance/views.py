@@ -28,10 +28,13 @@ def send_absent_sms(people, message_builder, date_str, number_getter, message_kw
     people_without_numbers = [f"{person.name} (no phone)" for person in people if not number_getter(person)]
 
     def deliver(person):
-        message_kwargs = message_kwargs_getter(person) if message_kwargs_getter else {}
-        message = message_builder(person.name, date_str, **message_kwargs)
-        success, response = send_sms(number_getter(person), message)
-        return person.name if success else None
+        try:
+            message_kwargs = message_kwargs_getter(person) if message_kwargs_getter else {}
+            message = message_builder(person.name, date_str, **message_kwargs)
+            success, response = send_sms(number_getter(person), message)
+            return person.name if success else None
+        except Exception:
+            return None
 
     if not people_with_numbers:
         return 0, people_without_numbers
