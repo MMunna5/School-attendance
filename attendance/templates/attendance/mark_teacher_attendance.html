@@ -25,7 +25,8 @@
 {% if saved %}
 <div class="bg-green-50 border border-green-200 text-forest rounded-xl p-4 mb-5 text-sm">
     {% if saved_type == 'full' %}Full-time{% else %}Part-time{% endif %} attendance saved successfully.
-    {% if sms_sent_count %} · {{ sms_sent_count }} SMS sent.{% endif %}
+    {% if sms_sent_count %} · {{ sms_sent_count }} SMS accepted by the provider. Check the SMS provider dashboard for
+    delivery status.{% endif %}
 </div>
 {% endif %}
 
