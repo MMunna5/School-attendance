@@ -252,18 +252,19 @@ def mark_attendance(request):
 
         if not already_marked:
             absent_students = []
-            for student in students:
-                status = request.POST.get(f'att_{student.id}', 'present')
-                is_present = status == 'present'
+            with transaction.atomic():
+                for student in students:
+                    status = request.POST.get(f'att_{student.id}', 'present')
+                    is_present = status == 'present'
 
-                Attendance.objects.update_or_create(
-                    student=student,
-                    date=today,
-                    defaults={'is_present': is_present}
-                )
+                    Attendance.objects.update_or_create(
+                        student=student,
+                        date=today,
+                        defaults={'is_present': is_present}
+                    )
 
-                if not is_present:
-                    absent_students.append(student)
+                    if not is_present:
+                        absent_students.append(student)
 
             sms_sent_count, sms_failed = send_absent_sms(
                 absent_students,
