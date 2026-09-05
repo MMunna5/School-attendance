@@ -117,7 +117,7 @@ class ModelAndAttendanceTests(TestCase):
         )
         new_student = Student.objects.create(
             roll_no="02",
-            name="New Student",
+            name="Amina Rahman",
             class_name="Ten",
             section="A",
             parent_mobile="01800000001",
@@ -172,8 +172,10 @@ class ExportAndReportTests(TestCase):
 
 class SMSUtilityTests(TestCase):
     def test_sms_message_builder(self):
-        msg = build_absent_message("Rahim", "01-Jan-26")
+        msg = build_absent_message("Rahim", "01-Jan-26", roll_no="01", class_name="Ten")
         self.assertIn("Rahim", msg)
+        self.assertIn("Roll: 01", msg)
+        self.assertIn("Class: Ten", msg)
         self.assertIn("ABSENT", msg)
 
     def test_normalize_sms_number(self):
