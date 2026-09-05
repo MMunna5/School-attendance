@@ -3,18 +3,9 @@ from django.conf import settings
 
 
 def append_school_name(base_message):
-    """
-    Uses the short school name when it keeps the message within
-    one SMS segment (160 chars). If the message is already longer than
-    that (multi-part SMS regardless), the fuller school name is used
-    instead since there's no length benefit left to protect.
-    """
+    """Append the configured short school name to every SMS."""
     short_name = getattr(settings, 'SCHOOL_SHORT_NAME', 'School')
-    full_name = getattr(settings, 'SCHOOL_FULL_NAME', short_name)
-    short_version = f"{base_message}\n{short_name}"
-    if len(short_version) <= 160:
-        return short_version
-    return f"{base_message}\n{full_name}"
+    return f"{base_message}\n{short_name}"
 
 
 def build_absent_message(student_name, date_str, roll_no=None, class_name=None):
