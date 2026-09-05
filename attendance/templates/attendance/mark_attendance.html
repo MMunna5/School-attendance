@@ -138,10 +138,17 @@
         <label class="cursor-pointer">
           <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" {{
             item.present_checked }}>
+          {% if item.present_checked %}
+          <span
+            class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-present text-white border border-present transition">
+            Present
+          </span>
+          {% else %}
           <span
             class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
             Present
           </span>
+          {% endif %}
         </label>
         <label class="cursor-pointer">
           <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only" {{
