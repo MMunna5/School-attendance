@@ -6,7 +6,7 @@ from django.utils import timezone
 import requests
 
 from .models import Teacher, Student, Attendance, TeacherAttendance
-from .sms_utils import send_sms, append_school_name, build_absent_message
+from .sms_utils import send_sms, append_school_name, build_absent_message, normalize_sms_number
 
 
 class HealthCheckTests(TestCase):
@@ -150,6 +150,10 @@ class SMSUtilityTests(TestCase):
         self.assertIn("Rahim", msg)
         self.assertIn("ABSENT", msg)
 
+    def test_normalize_sms_number(self):
+        self.assertEqual(normalize_sms_number("01700000000"), "+8801700000000")
+        self.assertEqual(normalize_sms_number("+8801700000000"), "+8801700000000")
+
     @patch('attendance.sms_utils.requests.get')
     def test_send_sms_success(self, mock_get):
         mock_get.return_value.status_code = 200
@@ -159,6 +163,7 @@ class SMSUtilityTests(TestCase):
             success, text = send_sms("01700000000", "Test message")
             self.assertTrue(success)
             self.assertIn("Success", text)
+            self.assertEqual(mock_get.call_args.kwargs["params"]["to"], "+8801700000000")
 
     @patch('attendance.sms_utils.requests.get')
     def test_send_sms_network_error_does_not_leak_token(self, mock_get):

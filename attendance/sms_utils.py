@@ -43,6 +43,17 @@ def build_teacher_absent_message(teacher_name, date_str):
     return append_school_name(base)
 
 
+def normalize_sms_number(number):
+    normalized = str(number or '').strip().replace(' ', '').replace('-', '')
+    if normalized.startswith('00'):
+        normalized = f"+{normalized[2:]}"
+    elif normalized.startswith('880'):
+        normalized = f"+{normalized}"
+    elif normalized.startswith('01'):
+        normalized = f"+880{normalized[1:]}"
+    return normalized
+
+
 def send_sms(number, message):
     token = getattr(settings, 'SMS_TOKEN', None)
     if not token:
@@ -51,12 +62,15 @@ def send_sms(number, message):
     url = "https://api.bdbulksms.net/api.php"
     params = {
         "token": token,
-        "to": number,
+        "to": normalize_sms_number(number),
         "message": message,
     }
     try:
         response = requests.get(url, params=params, timeout=10)
-        is_success = response.status_code == 200 and "success" in response.text.lower()
+        response_text = response.text.lower()
+        is_success = response.status_code == 200 and (
+            "ok:" in response_text or "success" in response_text
+        )
         return is_success, response.text
     except requests.RequestException:
         # Avoid exposing token or sensitive parameters in error messages
