@@ -1,3 +1,5 @@
+import json
+
 import requests
 from django.conf import settings
 
@@ -55,13 +57,25 @@ def send_sms(number, message):
         "token": token,
         "to": normalize_sms_number(number),
         "message": message,
+        "json": "",
     }
     try:
         response = requests.get(url, params=params, timeout=10)
-        response_text = response.text.lower()
-        is_success = response.status_code == 200 and (
-            "ok:" in response_text or "success" in response_text
-        )
+        response_text = response.text.strip()
+        is_success = False
+        try:
+            payload = json.loads(response_text)
+            results = payload if isinstance(payload, list) else [payload]
+            is_success = response.status_code == 200 and any(
+                str(result.get("status", "")).upper() == "SENT"
+                for result in results
+                if isinstance(result, dict)
+            )
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            response_lower = response_text.lower()
+            is_success = response.status_code == 200 and (
+                "ok:" in response_lower or "success" in response_lower
+            )
         return is_success, response.text
     except requests.RequestException:
         # Avoid exposing token or sensitive parameters in error messages

@@ -219,6 +219,15 @@ class SMSUtilityTests(TestCase):
             self.assertEqual(mock_get.call_args.kwargs["params"]["to"], "+8801700000000")
 
     @patch('attendance.sms_utils.requests.get')
+    def test_send_sms_json_sent_response(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.text = '[{"status": "SENT", "statusmsg": "SMS Sent Successfully"}]'
+
+        with self.settings(SMS_TOKEN="test_dummy_token"):
+            success, _ = send_sms("01700000000", "Test message")
+            self.assertTrue(success)
+
+    @patch('attendance.sms_utils.requests.get')
     def test_send_sms_network_error_does_not_leak_token(self, mock_get):
         # Simulate RequestException containing sensitive token in error
         mock_get.side_effect = requests.RequestException("Connection error with url: /api.php?token=secret123")
