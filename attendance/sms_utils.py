@@ -17,10 +17,18 @@ def append_school_name(base_message):
     return f"{base_message}\n{full_name}"
 
 
-def build_absent_message(student_name, date_str):
+def build_absent_message(student_name, date_str, roll_no=None, class_name=None):
+    student_details = student_name
+    if roll_no:
+        student_details += f" (Roll: {roll_no}"
+        if class_name:
+            student_details += f", Class: {class_name}"
+        student_details += ")"
+    elif class_name:
+        student_details += f" (Class: {class_name})"
     base = (
         f"Dear Parents,\n"
-        f"Your child {student_name} was ABSENT on {date_str}. "
+        f"Your child {student_details} was ABSENT on {date_str}. "
         f"Contact the Authority if this is a mistake."
     )
     return append_school_name(base)

@@ -21,13 +21,14 @@ STUDENT_EXCEL_HEADERS = ["Roll", "Name", "Class", "Section", "Session", "Phone"]
 TEACHER_EXCEL_HEADERS = ["Name", "Number", "Class"]
 
 
-def send_absent_sms(people, message_builder, date_str, number_getter):
+def send_absent_sms(people, message_builder, date_str, number_getter, message_kwargs_getter=None):
     """Send absence alerts one at a time to avoid provider rate-limit failures."""
     people_with_numbers = [person for person in people if number_getter(person)]
     people_without_numbers = [f"{person.name} (no phone)" for person in people if not number_getter(person)]
 
     def deliver(person):
-        message = message_builder(person.name, date_str)
+        message_kwargs = message_kwargs_getter(person) if message_kwargs_getter else {}
+        message = message_builder(person.name, date_str, **message_kwargs)
         success, response = send_sms(number_getter(person), message)
         return person.name if success else None
 
@@ -264,6 +265,10 @@ def mark_attendance(request):
                 build_absent_message,
                 date_str,
                 lambda student: student.parent_mobile,
+                lambda student: {
+                    'roll_no': student.roll_no,
+                    'class_name': student.class_name,
+                },
             )
 
             saved = True
