@@ -16,13 +16,11 @@ from .sms_utils import build_absent_message, build_teacher_absent_message, send_
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
-
 # Expected Excel column headers (in order) for the two bulk-upload forms.
 # These must exactly match (case/whitespace-insensitive) the header row
 # shown to the admin in student_upload.html / teacher_upload.html.
 STUDENT_EXCEL_HEADERS = ["Roll", "Name", "Class", "Section", "Session", "Phone"]
 TEACHER_EXCEL_HEADERS = ["Name", "Number", "Class"]
-
 
 def send_absent_sms(people, message_builder, date_str, number_getter, message_kwargs_getter=None):
     """Send absence alerts sequentially with one retry to avoid rate-limit failures."""
@@ -55,10 +53,8 @@ def send_absent_sms(people, message_builder, date_str, number_getter, message_kw
     ]
     return sent_count, failed
 
-
 def is_admin(user):
     return user.is_staff
-
 
 def check_header(header_row, expected_headers):
     """
@@ -81,7 +77,6 @@ def check_header(header_row, expected_headers):
             f"Please fix the header and upload again."
         )
     return None
-
 
 def get_class_choices():
     import re
@@ -111,27 +106,22 @@ def get_class_choices():
 
     return sorted(names, key=sort_key)
 
-
 def get_section_choices():
     return list(
         Student.objects.exclude(section='').values_list('section', flat=True).distinct().order_by('section')
     )
 
-
 def build_choice_options(values, selected_value):
     return [{'value': v, 'is_selected': (str(v) == str(selected_value))} for v in values]
-
 
 def build_choice_options_multi(values, selected_values):
     selected_set = {str(v) for v in selected_values}
     return [{'value': v, 'is_selected': (str(v) in selected_set)} for v in values]
 
-
 def get_report_date(value):
     """Return a valid report date, falling back to today for malformed input."""
     parsed = parse_date((value or '').strip())
     return parsed or timezone.now().date()
-
 
 def get_class_attendance_statuses(class_names, date):
     student_counts = {
@@ -161,7 +151,6 @@ def get_class_attendance_statuses(class_names, date):
         }
         for class_name in class_names
     ]
-
 
 @login_required
 def dashboard(request):
@@ -203,7 +192,6 @@ def dashboard(request):
         'admin_total': admin_total,
     })
 
-
 @login_required
 def change_password(request):
     error = None
@@ -228,7 +216,6 @@ def change_password(request):
 
     return render(request, 'attendance/change_password.html', {'error': error, 'success': success})
 
-
 @login_required
 def mark_attendance(request):
     teacher = Teacher.objects.filter(user=request.user).first()
@@ -239,6 +226,7 @@ def mark_attendance(request):
         return render(request, 'attendance/mark_attendance.html', {
             'error': 'Your account is not linked to any teacher. Ask admin to link it.',
             'is_admin_user': False,
+            'today': timezone.now().date(),
         })
 
     if is_admin_user:
@@ -249,6 +237,7 @@ def mark_attendance(request):
             return render(request, 'attendance/mark_attendance.html', {
                 'error': 'No class has been assigned to you yet. Please ask the admin to assign one.',
                 'is_admin_user': False,
+                'today': timezone.now().date(),
             })
 
     show_class_selector = is_admin_user or len(class_choices) > 1
@@ -354,55 +343,35 @@ def mark_attendance(request):
             else:
                 saved = True
                 already_marked = True
-                sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
+                sms_warning = (
+                    f"Attendance saved, but SMS was not queued because only "
+                    f"{attendance_count} of {class_student_count} students were marked. "
+                    f"Please mark the remaining students."
+                )
+        else:
+            sms_warning = "Attendance already marked for today. Only admin can edit."
 
-    # Teacher sees locked, Admin always editable
-    show_as_locked = already_marked and not is_admin_user
-
-    class_statuses = get_class_attendance_statuses(class_choices, today)
+    # Build attendance status for template
     attendance_map = {}
-    if current_class:
-        attendance_map = {
-            a.student_id: a.is_present
-            for a in Attendance.objects.filter(student__class_name=current_class, date=today)
-        }
+    if current_class and already_marked:
+        for att in Attendance.objects.filter(student__class_name=current_class, date=today):
+            attendance_map[att.student_id] = att.is_present
 
-    student_rows = [
-        {
-            'student': s,
-            'is_marked': s.id in attendance_map,
-            'is_present': attendance_map.get(s.id, True),
-            'present_checked': 'checked' if s.id not in attendance_map or attendance_map[s.id] else '',
-            'absent_checked': 'checked' if s.id in attendance_map and not attendance_map[s.id] else '',
-        }
-        for s in students
-    ]
-
-    if already_marked and current_class:
-        present_count = Attendance.objects.filter(
-            student__class_name=current_class, date=today, is_present=True
-        ).count()
-        absent_count = Attendance.objects.filter(
-            student__class_name=current_class, date=today, is_present=False
-        ).count()
-    else:
-        present_count = 0
-        absent_count = 0
+    present_count = sum(1 for v in attendance_map.values() if v) if attendance_map else 0
+    absent_count = sum(1 for v in attendance_map.values() if not v) if attendance_map else 0
 
     return render(request, 'attendance/mark_attendance.html', {
-        'teacher': teacher,
         'students': students,
-        'student_rows': student_rows,
+        'current_class': current_class,
+        'all_classes': all_classes,
+        'show_class_selector': show_class_selector,
+        'is_admin_user': is_admin_user,
         'today': today,
+        'already_marked': already_marked,
         'saved': saved,
         'sms_queued_count': sms_queued_count,
         'sms_warning': sms_warning,
-        'is_admin_user': is_admin_user,
-        'show_class_selector': show_class_selector,
-        'all_classes': all_classes,
-        'class_statuses': class_statuses,
-        'current_class': current_class,
-        'already_marked': show_as_locked,
+        'attendance_map': attendance_map,
         'present_count': present_count,
         'absent_count': absent_count,
         'total_students': students.count() if hasattr(students, 'count') else len(students),
@@ -413,268 +382,182 @@ def mark_attendance(request):
 def student_list(request):
     query = request.GET.get('q', '').strip()
     class_filter = request.GET.get('class', '').strip()
+    section_filter = request.GET.get('section', '').strip()
 
-    class_names = get_class_choices()
-    all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
     students = Student.objects.all().order_by('class_name', 'section', 'roll_no')
+
+    if query:
+        students = students.filter(name__icontains=query) | students.filter(roll_no__icontains=query)
     if class_filter:
         students = students.filter(class_name=class_filter)
-    if query:
-        students = students.filter(name__icontains=query)
-
-    total_count = students.count()
+    if section_filter:
+        students = students.filter(section=section_filter)
 
     paginator = Paginator(students, 50)
-    page_number = request.GET.get('page', 1)
+    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    class_choices = get_class_choices()
+    section_choices = get_section_choices()
+
     return render(request, 'attendance/student_list.html', {
-        'students': page_obj,
-        'total_count': total_count,
+        'page_obj': page_obj,
         'query': query,
         'class_filter': class_filter,
-        'all_classes': all_classes,
+        'section_filter': section_filter,
+        'class_choices': build_choice_options(class_choices, class_filter),
+        'section_choices': build_choice_options(section_choices, section_filter),
+        'total_students': paginator.count,
     })
-
 
 @login_required
 @user_passes_test(is_admin)
 def student_add(request):
     error = None
     if request.method == 'POST':
-        try:
-            Student.objects.create(
-                roll_no=request.POST.get('roll_no', '').strip(),
-                name=request.POST.get('name', '').strip(),
-                class_name=request.POST.get('class_name', '').strip(),
-                section=request.POST.get('section', '').strip(),
-                parent_mobile=request.POST.get('parent_mobile', '').strip(),
-            )
-            return redirect('student_list')
-        except IntegrityError:
-            error = "A student with this Roll Number already exists in this Class/Section. Please check and try again."
+        name = request.POST.get('name', '').strip()
+        roll_no = request.POST.get('roll_no', '').strip()
+        class_name = request.POST.get('class_name', '').strip()
+        section = request.POST.get('section', '').strip()
+        session = request.POST.get('session', '').strip()
+        phone = request.POST.get('phone', '').strip()
+
+        if not name or not roll_no or not class_name:
+            error = "Name, Roll and Class are required."
+        else:
+            try:
+                Student.objects.create(
+                    name=name,
+                    roll_no=roll_no,
+                    class_name=class_name,
+                    section=section,
+                    session=session,
+                    phone=phone,
+                )
+                return redirect('student_list')
+            except IntegrityError:
+                error = "A student with this Roll + Class + Section already exists."
 
     return render(request, 'attendance/student_form.html', {
-        'mode': 'Add',
         'error': error,
-        'class_options': build_choice_options(get_class_choices(), ''),
-        'section_options': build_choice_options(get_section_choices(), ''),
+        'student': None,
+        'title': 'Add Student',
     })
-
 
 @login_required
 @user_passes_test(is_admin)
-def student_edit(request, student_id):
-    student = get_object_or_404(Student, id=student_id)
+def student_edit(request, pk):
+    student = get_object_or_404(Student, pk=pk)
     error = None
+
     if request.method == 'POST':
-        try:
-            student.roll_no = request.POST.get('roll_no', '').strip()
-            student.name = request.POST.get('name', '').strip()
-            student.class_name = request.POST.get('class_name', '').strip()
-            student.section = request.POST.get('section', '').strip()
-            student.parent_mobile = request.POST.get('parent_mobile', '').strip()
-            student.save()
-            return redirect('student_list')
-        except IntegrityError:
-            error = "A student with this Roll Number already exists in this Class/Section. Please check and try again."
+        name = request.POST.get('name', '').strip()
+        roll_no = request.POST.get('roll_no', '').strip()
+        class_name = request.POST.get('class_name', '').strip()
+        section = request.POST.get('section', '').strip()
+        session = request.POST.get('session', '').strip()
+        phone = request.POST.get('phone', '').strip()
+
+        if not name or not roll_no or not class_name:
+            error = "Name, Roll and Class are required."
+        else:
+            student.name = name
+            student.roll_no = roll_no
+            student.class_name = class_name
+            student.section = section
+            student.session = session
+            student.phone = phone
+            try:
+                student.save()
+                return redirect('student_list')
+            except IntegrityError:
+                error = "A student with this Roll + Class + Section already exists."
 
     return render(request, 'attendance/student_form.html', {
-        'mode': 'Edit',
-        'student': student,
         'error': error,
-        'class_options': build_choice_options(get_class_choices(), student.class_name),
-        'section_options': build_choice_options(get_section_choices(), student.section),
+        'student': student,
+        'title': 'Edit Student',
     })
-
 
 @login_required
 @user_passes_test(is_admin)
-def student_delete(request, student_id):
-    student = get_object_or_404(Student, id=student_id)
+def student_delete(request, pk):
+    student = get_object_or_404(Student, pk=pk)
     if request.method == 'POST':
         student.delete()
         return redirect('student_list')
     return render(request, 'attendance/student_confirm_delete.html', {'student': student})
 
-
-@login_required
-@user_passes_test(is_admin)
-def class_delete(request, class_name):
-    students = Student.objects.filter(class_name=class_name)
-    count = students.count()
-
-    if request.method == 'POST':
-        students.delete()
-        return redirect('student_list')
-
-    return render(request, 'attendance/class_confirm_delete.html', {
-        'class_name': class_name,
-        'count': count,
-    })
-
-
 @login_required
 @user_passes_test(is_admin)
 def student_upload(request):
-    file_results = []
-
-    if request.method == 'POST' and request.FILES.getlist('excel_file'):
-        for excel_file in request.FILES.getlist('excel_file'):
-
-            if not excel_file.name.lower().endswith('.xlsx'):
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "This is not an .xlsx file. Please save it as an Excel (.xlsx) file and try again.",
-                })
-                continue
-
-            try:
-                wb = openpyxl.load_workbook(excel_file, data_only=True, read_only=True)
-                ws = wb.active
-                rows = list(ws.iter_rows(values_only=True))
-                wb.close()
-            except Exception:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "Could not open this file. It may be corrupted, password-protected, or not a real Excel file.",
-                })
-                continue
-
+    file_results = None
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            wb = openpyxl.load_workbook(excel_file)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
             if not rows:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "This file appears to be empty (only a header row, or no rows at all).",
+                return render(request, 'attendance/student_upload.html', {
+                    'file_results': {'error': 'Empty file.'}
                 })
-                continue
 
             header_error = check_header(rows[0], STUDENT_EXCEL_HEADERS)
             if header_error:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": header_error,
+                return render(request, 'attendance/student_upload.html', {
+                    'file_results': {'error': header_error}
                 })
-                continue
 
-            if len(rows) < 2:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "This file appears to be empty (only a header row, or no rows at all).",
-                })
-                continue
-
-            parsed_rows = {}
-            skipped = 0
-            detected_classes = set()
-
-            for row in rows[1:]:
-                # Ignore completely blank/empty rows silently
-                if not row or not any(cell is not None and str(cell).strip() != "" for cell in row):
-                    continue
-
-                if len(row) < 3:
-                    skipped += 1
-                    continue
-
-                roll_raw = row[0]
-                name_raw = row[1]
-                class_raw = row[2]
-                section_raw = row[3] if len(row) > 3 and row[3] is not None else ""
-                phone_raw = row[5] if len(row) > 5 and row[5] is not None else ""
-
-                roll_str = str(roll_raw).strip() if roll_raw is not None else ""
-                if roll_str.endswith(".0"):
-                    roll_str = roll_str[:-2]
-
-                class_str = str(class_raw).strip() if class_raw is not None else ""
-                if class_str.endswith(".0"):
-                    class_str = class_str[:-2]
-
-                name_str = str(name_raw).strip() if name_raw is not None else ""
-                section_str = str(section_raw).strip()
-                if section_str.endswith(".0"):
-                    section_str = section_str[:-2]
-
-                phone_str = str(phone_raw).strip()
-                if phone_str.endswith(".0"):
-                    phone_str = phone_str[:-2]
-                if phone_str and not phone_str.startswith("0") and phone_str.isdigit():
-                    phone_str = "0" + phone_str
-
-                if not roll_str or not name_str or not class_str:
-                    skipped += 1
-                    continue
-
-                key = (class_str, section_str, roll_str)
-                parsed_rows[key] = {
-                    "roll_no": roll_str,
-                    "class_name": class_str,
-                    "section": section_str,
-                    "name": name_str,
-                    "parent_mobile": phone_str,
-                }
-                detected_classes.add(f"{class_str}{section_str}")
-
-            if not parsed_rows:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": f"No valid rows found. All {skipped} row(s) were missing a Roll, Name, or Class value.",
-                })
-                continue
-
-            # Batch lookup existing students for detected classes in 1 query
-            classes_in_file = {k[0] for k in parsed_rows.keys()}
-            existing_students = {
-                (s.class_name, s.section, s.roll_no): s
-                for s in Student.objects.filter(class_name__in=classes_in_file)
-            }
-
-            to_create = []
-            to_update = []
             created = 0
             updated = 0
+            skipped = 0
+            errors = []
 
-            for key, data in parsed_rows.items():
-                if key in existing_students:
-                    s = existing_students[key]
-                    changed = False
-                    if s.name != data["name"]:
-                        s.name = data["name"]
-                        changed = True
-                    if s.parent_mobile != data["parent_mobile"]:
-                        s.parent_mobile = data["parent_mobile"]
-                        changed = True
-                    if changed:
-                        to_update.append(s)
-                    updated += 1
-                else:
-                    new_s = Student(
-                        class_name=data["class_name"],
-                        section=data["section"],
-                        roll_no=data["roll_no"],
-                        name=data["name"],
-                        parent_mobile=data["parent_mobile"],
+            for i, row in enumerate(rows[1:], start=2):
+                if not row or all(cell is None or str(cell).strip() == '' for cell in row):
+                    continue
+                try:
+                    roll = str(row[0]).strip() if row[0] is not None else ''
+                    name = str(row[1]).strip() if row[1] is not None else ''
+                    class_name = str(row[2]).strip() if row[2] is not None else ''
+                    section = str(row[3]).strip() if len(row) > 3 and row[3] is not None else ''
+                    session = str(row[4]).strip() if len(row) > 4 and row[4] is not None else ''
+                    phone = str(row[5]).strip() if len(row) > 5 and row[5] is not None else ''
+
+                    if not roll or not name or not class_name:
+                        skipped += 1
+                        errors.append(f"Row {i}: Missing required fields.")
+                        continue
+
+                    obj, was_created = Student.objects.update_or_create(
+                        roll_no=roll,
+                        class_name=class_name,
+                        section=section,
+                        defaults={
+                            'name': name,
+                            'session': session,
+                            'phone': phone,
+                        }
                     )
-                    to_create.append(new_s)
-                    existing_students[key] = new_s
-                    created += 1
+                    if was_created:
+                        created += 1
+                    else:
+                        updated += 1
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Row {i}: {str(e)}")
 
-            with transaction.atomic():
-                if to_create:
-                    Student.objects.bulk_create(to_create, batch_size=500)
-                if to_update:
-                    Student.objects.bulk_update(to_update, fields=["name", "parent_mobile"], batch_size=500)
-
-            file_results.append({
-                "filename": excel_file.name,
-                "class_label": ", ".join(sorted(detected_classes)) or "Unknown",
-                "created": created,
-                "updated": updated,
-                "skipped": skipped,
-            })
+            file_results = {
+                'created': created,
+                'updated': updated,
+                'skipped': skipped,
+                'errors': errors[:20],
+            }
+        except Exception as e:
+            file_results = {'error': str(e)}
 
     return render(request, 'attendance/student_upload.html', {'file_results': file_results})
-
 
 @login_required
 @user_passes_test(is_admin)
@@ -682,251 +565,134 @@ def teacher_list(request):
     full_time = Teacher.objects.select_related('user').filter(
         employment_type=Teacher.EMPLOYMENT_FULL
     ).order_by('id')
+
     part_time = Teacher.objects.select_related('user').filter(
         employment_type=Teacher.EMPLOYMENT_PART
     ).order_by('id')
+
     return render(request, 'attendance/teacher_list.html', {
         'full_time_teachers': full_time,
         'part_time_teachers': part_time,
         'full_time_count': full_time.count(),
+        'part_time_count': part_time.count(),
     })
-
 
 @login_required
 @user_passes_test(is_admin)
 def teacher_add(request):
     error = None
-    employment_type = request.GET.get('type', '').strip() or request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
-    if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
-        employment_type = Teacher.EMPLOYMENT_FULL
+    employment_type = request.GET.get('type', '') or request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)
 
     if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        classes = request.POST.get('classes', '').strip()
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
-        name = request.POST.get('name', '').strip()
-        mobile = request.POST.get('mobile', '').strip()
-        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
-        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
-            employment_type = Teacher.EMPLOYMENT_FULL
-        assigned_classes_list = request.POST.getlist('assigned_classes')
-        assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
+        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)
 
-        if User.objects.filter(username=username).exists():
-            error = f"Username '{username}' is already taken."
+        if not name:
+            error = "Name is required."
+        elif employment_type == Teacher.EMPLOYMENT_FULL and (not username or not password):
+            error = "Username and password are required for full-time teachers."
         else:
-            user = User.objects.create_user(username=username, password=password)
-            Teacher.objects.create(
-                user=user,
-                name=name,
-                mobile=mobile,
-                assigned_classes=assigned_classes,
-                employment_type=employment_type,
-            )
-            return redirect('teacher_list')
-
-    type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
-    return render(request, 'attendance/teacher_form.html', {
-        'mode': 'Add',
-        'error': error,
-        'class_options': build_choice_options_multi(get_class_choices(), []),
-        'employment_type': employment_type,
-        'type_label': type_label,
-    })
-
-
-@login_required
-@user_passes_test(is_admin)
-def teacher_edit(request, teacher_id):
-    teacher = get_object_or_404(Teacher, id=teacher_id)
-    if request.method == 'POST':
-        teacher.name = request.POST.get('name', '').strip()
-        teacher.mobile = request.POST.get('mobile', '').strip()
-        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
-        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
-            employment_type = Teacher.EMPLOYMENT_FULL
-        teacher.employment_type = employment_type
-        assigned_classes_list = request.POST.getlist('assigned_classes')
-        teacher.assigned_classes = ",".join(c.strip() for c in assigned_classes_list if c.strip())
-        teacher.save()
-
-        new_password = request.POST.get('password', '').strip()
-        if new_password and teacher.user:
-            teacher.user.set_password(new_password)
-            teacher.user.save()
-
-        return redirect('teacher_list')
-
-    type_label = 'Full-time' if teacher.employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
-    return render(request, 'attendance/teacher_form.html', {
-        'mode': 'Edit',
-        'teacher': teacher,
-        'class_options': build_choice_options_multi(get_class_choices(), teacher.get_class_list()),
-        'employment_type': teacher.employment_type,
-        'type_label': type_label,
-    })
-
-
-@login_required
-@user_passes_test(is_admin)
-def teacher_upload(request):
-    file_results = []
-    employment_type = request.GET.get('type', request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL)).strip()
-    if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
-        employment_type = Teacher.EMPLOYMENT_FULL
-    type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
-
-    if request.method == 'POST' and request.FILES.getlist('excel_file'):
-        employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
-        if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
-            employment_type = Teacher.EMPLOYMENT_FULL
-        type_label = 'Full-time' if employment_type == Teacher.EMPLOYMENT_FULL else 'Part-time'
-
-        for excel_file in request.FILES.getlist('excel_file'):
-            if not excel_file.name.lower().endswith('.xlsx'):
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "Only .xlsx files are allowed.",
-                })
-                continue
-
             try:
-                wb = openpyxl.load_workbook(excel_file, data_only=True, read_only=True)
-                ws = wb.active
-                rows = list(ws.iter_rows(values_only=True))
-                wb.close()
-            except Exception:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "Could not open this file.",
-                })
-                continue
-
-            if not rows:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "File is empty.",
-                })
-                continue
-
-            header_error = check_header(rows[0], TEACHER_EXCEL_HEADERS)
-            if header_error:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": header_error,
-                })
-                continue
-
-            if len(rows) < 2:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "This file appears to be empty (only a header row, no data rows).",
-                })
-                continue
-
-            parsed_teachers = {}
-            skipped = 0
-
-            for row in rows[1:]:
-                if not row or not any(cell is not None and str(cell).strip() != "" for cell in row):
-                    continue
-                if len(row) < 1:
-                    skipped += 1
-                    continue
-
-                name = row[0]
-                mobile = row[1] if len(row) > 1 else ""
-                assigned_class = row[2] if len(row) > 2 else ""
-
-                name_str = str(name).strip() if name is not None else ""
-                clean_mobile = str(mobile).strip() if mobile else ""
-                if clean_mobile.endswith('.0'):
-                    clean_mobile = clean_mobile[:-2]
-                if clean_mobile and not clean_mobile.startswith("0") and clean_mobile.isdigit():
-                    clean_mobile = "0" + clean_mobile
-
-                if not name_str or not clean_mobile:
-                    skipped += 1
-                    continue
-
-                class_str = str(assigned_class).strip() if assigned_class else ""
-                if class_str.endswith('.0'):
-                    class_str = class_str[:-2]
-
-                parsed_teachers[clean_mobile] = {
-                    "name": name_str,
-                    "mobile": clean_mobile,
-                    "assigned_classes": class_str,
-                }
-
-            if not parsed_teachers:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": f"No valid rows found. All {skipped} row(s) were missing a Name or Number value.",
-                })
-                continue
-
-            mobiles = list(parsed_teachers.keys())
-            existing_users = {u.username: u for u in User.objects.filter(username__in=mobiles)}
-            existing_teachers = {t.mobile: t for t in Teacher.objects.filter(mobile__in=mobiles).select_related('user')}
-
-            created = 0
-            updated = 0
-            default_pw = getattr(settings, "DEFAULT_TEACHER_PASSWORD", "")
-            if not default_pw:
-                file_results.append({
-                    "filename": excel_file.name,
-                    "error": "DEFAULT_TEACHER_PASSWORD is not configured. Set it in the deployment environment before importing teachers.",
-                })
-                continue
-
-            with transaction.atomic():
-                for mobile, data in parsed_teachers.items():
-                    user = existing_users.get(mobile)
-                    if not user:
-                        user = User.objects.create_user(
-                            username=mobile,
-                            password=default_pw,
-                        )
-                        existing_users[mobile] = user
-
-                    teacher = existing_teachers.get(mobile)
-                    if teacher:
-                        teacher.name = data["name"]
-                        teacher.assigned_classes = data["assigned_classes"]
-                        teacher.employment_type = employment_type
-                        if teacher.user_id != user.id:
-                            teacher.user = user
-                        teacher.save()
-                        updated += 1
-                    else:
-                        new_t = Teacher.objects.create(
-                            name=data["name"],
-                            mobile=mobile,
-                            assigned_classes=data["assigned_classes"],
+                with transaction.atomic():
+                    user = None
+                    if employment_type == Teacher.EMPLOYMENT_FULL:
+                        if User.objects.filter(username=username).exists():
+                            error = "Username already exists."
+                        else:
+                            user = User.objects.create_user(username=username, password=password)
+                    if not error:
+                        Teacher.objects.create(
+                            name=name,
+                            phone=phone,
+                            classes=classes,
                             user=user,
                             employment_type=employment_type,
                         )
-                        existing_teachers[mobile] = new_t
-                        created += 1
+                        return redirect('teacher_list')
+            except Exception as e:
+                error = str(e)
 
-            file_results.append({
-                "filename": excel_file.name,
-                "created": created,
-                "updated": updated,
-                "skipped": skipped,
-            })
-
-    return render(request, 'attendance/teacher_upload.html', {
-        'file_results': file_results,
+    return render(request, 'attendance/teacher_form.html', {
+        'error': error,
+        'teacher': None,
+        'title': 'Add Teacher',
         'employment_type': employment_type,
-        'type_label': type_label,
     })
-
 
 @login_required
 @user_passes_test(is_admin)
-def teacher_delete(request, teacher_id):
-    teacher = get_object_or_404(Teacher, id=teacher_id)
+def teacher_edit(request, pk):
+    teacher = get_object_or_404(Teacher, pk=pk)
+    error = None
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        classes = request.POST.get('classes', '').strip()
+        employment_type = request.POST.get('employment_type', teacher.employment_type)
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        if not name:
+            error = "Name is required."
+        else:
+            try:
+                with transaction.atomic():
+                    teacher.name = name
+                    teacher.phone = phone
+                    teacher.classes = classes
+                    teacher.employment_type = employment_type
+
+                    if employment_type == Teacher.EMPLOYMENT_FULL:
+                        if teacher.user:
+                            if username and username != teacher.user.username:
+                                if User.objects.filter(username=username).exists():
+                                    error = "Username already exists."
+                                else:
+                                    teacher.user.username = username
+                                    teacher.user.save()
+                            if password:
+                                teacher.user.set_password(password)
+                                teacher.user.save()
+                        else:
+                            if not username or not password:
+                                error = "Username and password required for full-time teacher."
+                            elif User.objects.filter(username=username).exists():
+                                error = "Username already exists."
+                            else:
+                                user = User.objects.create_user(username=username, password=password)
+                                teacher.user = user
+                    else:
+                        # part-time: optionally remove linked user
+                        if teacher.user and request.POST.get('remove_user') == 'on':
+                            linked = teacher.user
+                            teacher.user = None
+                            teacher.save()
+                            linked.delete()
+                        else:
+                            teacher.save()
+
+                    if not error:
+                        teacher.save()
+                        return redirect('teacher_list')
+            except Exception as e:
+                error = str(e)
+
+    return render(request, 'attendance/teacher_form.html', {
+        'error': error,
+        'teacher': teacher,
+        'title': 'Edit Teacher',
+        'employment_type': teacher.employment_type,
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def teacher_delete(request, pk):
+    teacher = get_object_or_404(Teacher, pk=pk)
     if request.method == 'POST':
         linked_user = teacher.user
         teacher.delete()
@@ -935,83 +701,88 @@ def teacher_delete(request, teacher_id):
         return redirect('teacher_list')
     return render(request, 'attendance/teacher_confirm_delete.html', {'teacher': teacher})
 
-
 @login_required
 @user_passes_test(is_admin)
 def mark_teacher_attendance(request):
     today = timezone.now().date()
-    saved = False
-    saved_type = None
-    sms_queued_count = 0
-    sms_warning = None
+    full_time = list(Teacher.objects.filter(employment_type=Teacher.EMPLOYMENT_FULL).order_by('name'))
+    part_time = list(Teacher.objects.filter(employment_type=Teacher.EMPLOYMENT_PART).order_by('name'))
 
-    full_already_marked = TeacherAttendance.objects.filter(
-        date=today, teacher__employment_type=Teacher.EMPLOYMENT_FULL
-    ).exists()
-    part_already_marked = TeacherAttendance.objects.filter(
-        date=today, teacher__employment_type=Teacher.EMPLOYMENT_PART
-    ).exists()
+    already_marked = TeacherAttendance.objects.filter(date=today).exists()
+
+    saved = False
+    sms_queued_count = 0
 
     if request.method == 'POST':
-        section = request.POST.get('section')
-
-        if section == 'full' and not full_already_marked:
-            employment_type = Teacher.EMPLOYMENT_FULL
-        elif section == 'part' and not part_already_marked:
-            employment_type = Teacher.EMPLOYMENT_PART
-        else:
-            employment_type = None
-
-        if employment_type:
-            with transaction.atomic():
-                already_marked = TeacherAttendance.objects.select_for_update().filter(
-                    date=today,
-                    teacher__employment_type=employment_type,
-                ).exists()
-                if not already_marked:
-                    section_teachers = Teacher.objects.filter(employment_type=employment_type).order_by('id')
-                    absent_teachers = []
-                    for teacher in section_teachers:
-                        status = request.POST.get(f'tatt_{teacher.id}', 'present')
-                        is_present = status == 'present'
-
-                        TeacherAttendance.objects.update_or_create(
-                            teacher=teacher,
-                            date=today,
-                            defaults={'is_present': is_present}
-                        )
-
-                        if not is_present:
-                            absent_teachers.append(teacher)
-
-                    queued_messages = TeacherAbsenceSms.objects.bulk_create(
-                        [TeacherAbsenceSms(teacher=teacher, date=today) for teacher in absent_teachers],
-                        ignore_conflicts=True,
-                    )
-                    sms_queued_count = len(queued_messages)
-
-                    saved = True
-                    saved_type = section
-                    if section == 'full':
-                        full_already_marked = True
-                    else:
-                        part_already_marked = True
-
-    teachers = Teacher.objects.all().order_by('id')
-    attendance_map = {
-        a.teacher_id: a.is_present
-        for a in TeacherAttendance.objects.filter(date=today)
-    }
-    teacher_rows = [
-        {
-            'teacher': t,
-            'is_present': attendance_map.get(t.id, True),
+        existing = {
+            ta.teacher_id: ta
+            for ta in TeacherAttendance.objects.filter(date=today)
         }
-        for t in teachers
-    ]
+        to_create = []
+        to_update = []
+        absent_teachers = []
 
-    full_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_FULL]
-    part_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_PART]
+        for teacher in full_time + part_time:
+            status = request.POST.get(f'att_{teacher.id}', 'present')
+            is_present = status == 'present'
+
+            if teacher.id in existing:
+                ta = existing[teacher.id]
+                if ta.is_present != is_present:
+                    ta.is_present = is_present
+                    to_update.append(ta)
+            else:
+                to_create.append(TeacherAttendance(
+                    teacher=teacher,
+                    date=today,
+                    is_present=is_present,
+                ))
+
+            if not is_present:
+                absent_teachers.append(teacher)
+
+        if to_create:
+            TeacherAttendance.objects.bulk_create(to_create, ignore_conflicts=True)
+        if to_update:
+            TeacherAttendance.objects.bulk_update(to_update, ['is_present'])
+
+        # Queue SMS for new absences
+        existing_sms = set(
+            TeacherAbsenceSms.objects.filter(
+                teacher__in=absent_teachers, date=today
+            ).values_list('teacher_id', flat=True)
+        )
+        new_sms = [
+            TeacherAbsenceSms(teacher=t, date=today)
+            for t in absent_teachers if t.id not in existing_sms
+        ]
+        if new_sms:
+            queued = TeacherAbsenceSms.objects.bulk_create(new_sms, ignore_conflicts=True)
+            sms_queued_count = len(queued)
+
+        saved = True
+        already_marked = True
+
+    # Build rows for template
+    attendance_map = {
+        ta.teacher_id: ta.is_present
+        for ta in TeacherAttendance.objects.filter(date=today)
+    }
+
+    def build_rows(teachers):
+        rows = []
+        for t in teachers:
+            rows.append({
+                'teacher': t,
+                'is_present': attendance_map.get(t.id, True),
+            })
+        return rows
+
+    full_time_rows = build_rows(full_time)
+    part_time_rows = build_rows(part_time)
+
+    full_already_marked = any(t.id in attendance_map for t in full_time)
+    part_already_marked = any(t.id in attendance_map for t in part_time)
 
     full_present = sum(1 for r in full_time_rows if r['is_present']) if full_already_marked else 0
     full_absent = len(full_time_rows) - full_present if full_already_marked else 0
@@ -1019,281 +790,284 @@ def mark_teacher_attendance(request):
     part_absent = len(part_time_rows) - part_present if part_already_marked else 0
 
     return render(request, 'attendance/mark_teacher_attendance.html', {
-        'teachers': teachers,
-        'teacher_rows': teacher_rows,
+        'today': today,
         'full_time_rows': full_time_rows,
         'part_time_rows': part_time_rows,
-        'today': today,
+        'already_marked': already_marked,
         'saved': saved,
-        'saved_type': saved_type,
         'sms_queued_count': sms_queued_count,
-        'sms_warning': sms_warning,
-        'full_already_marked': full_already_marked,
-        'part_already_marked': part_already_marked,
-        'full_total': len(full_time_rows),
-        'part_total': len(part_time_rows),
         'full_present': full_present,
         'full_absent': full_absent,
         'part_present': part_present,
         'part_absent': part_absent,
-        'total_teachers': teachers.count(),
+        'full_total': len(full_time_rows),
+        'part_total': len(part_time_rows),
     })
 
 @login_required
 @user_passes_test(is_admin)
-def teacher_attendance_history(request):
-    month_str = request.GET.get('month', '') or timezone.now().strftime('%Y-%m')
-    try:
-        year, month = map(int, month_str.split('-'))
-    except ValueError:
-        now = timezone.now()
-        year, month = now.year, now.month
-        month_str = f"{year:04d}-{month:02d}"
+def teacher_upload(request):
+    file_results = None
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            wb = openpyxl.load_workbook(excel_file)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                return render(request, 'attendance/teacher_upload.html', {
+                    'file_results': {'error': 'Empty file.'}
+                })
 
-    teachers = Teacher.objects.all().order_by('id')
-    records = []
-    for teacher in teachers:
-        qs = TeacherAttendance.objects.filter(teacher=teacher, date__year=year, date__month=month)
-        present = qs.filter(is_present=True).count()
-        absent = qs.filter(is_present=False).count()
-        records.append({'teacher': teacher, 'present': present, 'absent': absent})
+            header_error = check_header(rows[0], TEACHER_EXCEL_HEADERS)
+            if header_error:
+                return render(request, 'attendance/teacher_upload.html', {
+                    'file_results': {'error': header_error}
+                })
 
-    return render(request, 'attendance/teacher_attendance_history.html', {
-        'records': records,
-        'month_str': month_str,
-    })
+            created = 0
+            skipped = 0
+            errors = []
 
+            for i, row in enumerate(rows[1:], start=2):
+                if not row or all(cell is None or str(cell).strip() == '' for cell in row):
+                    continue
+                try:
+                    name = str(row[0]).strip() if row[0] is not None else ''
+                    phone = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ''
+                    classes = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ''
 
-@login_required
-@user_passes_test(is_admin)
-def export_teacher_attendance(request):
-    month_str = request.GET.get('month', '') or timezone.now().strftime('%Y-%m')
-    try:
-        year, month = map(int, month_str.split('-'))
-    except ValueError:
-        now = timezone.now()
-        year, month = now.year, now.month
-        month_str = f"{year:04d}-{month:02d}"
+                    if not name:
+                        skipped += 1
+                        errors.append(f"Row {i}: Name is required.")
+                        continue
 
-    teachers = Teacher.objects.all().order_by('id')
+                    Teacher.objects.create(
+                        name=name,
+                        phone=phone,
+                        classes=classes,
+                        employment_type=Teacher.EMPLOYMENT_PART,
+                    )
+                    created += 1
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Row {i}: {str(e)}")
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"Teacher Attendance {month_str}"
+            file_results = {
+                'created': created,
+                'skipped': skipped,
+                'errors': errors[:20],
+            }
+        except Exception as e:
+            file_results = {'error': str(e)}
 
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="1E3D32", end_color="1E3D32", fill_type="solid")
-    thin = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-
-    headers = ["ID", "Name", "Mobile", "Present", "Absent"]
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center")
-        cell.border = thin
-
-    for row_num, teacher in enumerate(teachers, 2):
-        qs = TeacherAttendance.objects.filter(teacher=teacher, date__year=year, date__month=month)
-        present = qs.filter(is_present=True).count()
-        absent = qs.filter(is_present=False).count()
-
-        values = [
-            teacher.id,
-            teacher.name,
-            teacher.mobile or "",
-            present,
-            absent,
-        ]
-        for col, val in enumerate(values, 1):
-            cell = ws.cell(row=row_num, column=col, value=val)
-            cell.border = thin
-            cell.alignment = Alignment(horizontal="center" if col != 2 else "left")
-
-    ws.column_dimensions['A'].width = 8
-    ws.column_dimensions['B'].width = 28
-    ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 12
-    ws.column_dimensions['E'].width = 12
-
-    filename = f"Teacher_Attendance_{month_str}.xlsx"
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    wb.save(response)
-    return response
-
+    return render(request, 'attendance/teacher_upload.html', {'file_results': file_results})
 
 @login_required
-@user_passes_test(is_admin)
-def attendance_history(request):
-    class_names = get_class_choices()
-    class_filter = request.GET.get('class', '').strip()
-    all_classes_selected = class_filter in ('__all__', 'all')
-    roll_filter = request.GET.get('roll', '').strip()
-    date_filter = get_report_date(request.GET.get('date')).isoformat()
+def attendance_report(request):
+    teacher = Teacher.objects.filter(user=request.user).first()
+    is_admin_user = request.user.is_staff
 
-    all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
-    class_order = {class_name: index for index, class_name in enumerate(class_names)}
+    if not is_admin_user and not teacher:
+        return render(request, 'attendance/attendance_report.html', {
+            'error': 'Your account is not linked to any teacher.',
+        })
 
-    records = []
-    if all_classes_selected or class_filter or roll_filter:
-        students = Student.objects.all()
-        if class_filter and not all_classes_selected:
-            students = students.filter(class_name=class_filter)
-        if roll_filter:
-            students = students.filter(roll_no__icontains=roll_filter)
-        students = list(students.order_by('class_name', 'section', 'roll_no'))
-        if all_classes_selected:
-            students.sort(
-                key=lambda student: (
-                    class_order.get(student.class_name, len(class_order)),
-                    student.section,
-                    student.roll_no,
-                )
-            )
+    if is_admin_user:
+        class_choices = get_class_choices()
+    else:
+        class_choices = teacher.get_class_list()
 
-        attendance_map = {
-            a.student_id: a.is_present
-            for a in Attendance.objects.filter(student__in=students, date=date_filter)
-        }
-        for student in students:
-            status = attendance_map.get(student.id)
-            records.append({
-                'student': student,
-                'status': 'present' if status is True else ('absent' if status is False else 'not_marked'),
+    selected_class = request.GET.get('class', '').strip()
+    selected_date = request.GET.get('date', '').strip()
+    report_date = get_report_date(selected_date)
+
+    if selected_class and selected_class in class_choices:
+        current_class = selected_class
+    elif class_choices:
+        current_class = class_choices[0]
+    else:
+        current_class = None
+
+    students = []
+    present_count = 0
+    absent_count = 0
+    attendance_list = []
+
+    if current_class:
+        students = Student.objects.filter(class_name=current_class).order_by('section', 'roll_no')
+        att_qs = Attendance.objects.filter(
+            student__class_name=current_class,
+            date=report_date,
+        ).select_related('student')
+        att_map = {a.student_id: a.is_present for a in att_qs}
+
+        for s in students:
+            is_present = att_map.get(s.id)
+            attendance_list.append({
+                'student': s,
+                'is_present': is_present,
             })
+            if is_present is True:
+                present_count += 1
+            elif is_present is False:
+                absent_count += 1
 
-    present_count = sum(1 for r in records if r['status'] == 'present')
-    absent_count = sum(1 for r in records if r['status'] == 'absent')
+    class_statuses = get_class_attendance_statuses(class_choices, report_date) if is_admin_user else []
 
-    return render(request, 'attendance/attendance_history.html', {
-        'all_classes': all_classes,
-        'class_filter': class_filter,
-        'all_classes_selected': all_classes_selected,
-        'roll_filter': roll_filter,
-        'date_filter': date_filter,
-        'records': records,
+    return render(request, 'attendance/attendance_report.html', {
+        'is_admin_user': is_admin_user,
+        'class_choices': build_choice_options(class_choices, current_class),
+        'current_class': current_class,
+        'report_date': report_date,
+        'attendance_list': attendance_list,
         'present_count': present_count,
         'absent_count': absent_count,
+        'total_students': len(students),
+        'class_statuses': class_statuses,
     })
 
 @login_required
 @user_passes_test(is_admin)
 def export_attendance(request):
-    class_filter = request.GET.get('class', '').strip()
-    date_filter = get_report_date(request.GET.get('date')).isoformat()
+    selected_class = request.GET.get('class', '').strip()
+    selected_date = request.GET.get('date', '').strip()
+    report_date = get_report_date(selected_date)
 
-    if not class_filter:
-        return redirect('attendance_history')
+    if not selected_class:
+        return redirect('attendance_report')
 
-    students = Student.objects.filter(class_name=class_filter).order_by('roll_no')
-    attendance_map = {
+    students = Student.objects.filter(class_name=selected_class).order_by('section', 'roll_no')
+    att_map = {
         a.student_id: a.is_present
-        for a in Attendance.objects.filter(student__class_name=class_filter, date=date_filter)
+        for a in Attendance.objects.filter(
+            student__class_name=selected_class,
+            date=report_date,
+        )
     }
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Class {class_filter}"
+    ws.title = "Attendance"
 
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="1E3D32", end_color="1E3D32", fill_type="solid")
-    present_fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
-    absent_fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
-    thin = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
+    headers = ["Roll", "Name", "Section", "Status"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font = Font(bold=True)
 
-    headers = ["Roll", "Name", "Class", "Section", "Mobile", "Status"]
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center")
-        cell.border = thin
+    for i, s in enumerate(students, 2):
+        status = "Present" if att_map.get(s.id) is True else ("Absent" if att_map.get(s.id) is False else "Not Marked")
+        ws.cell(row=i, column=1, value=s.roll_no)
+        ws.cell(row=i, column=2, value=s.name)
+        ws.cell(row=i, column=3, value=s.section)
+        ws.cell(row=i, column=4, value=status)
 
-    for row_num, student in enumerate(students, 2):
-        status_bool = attendance_map.get(student.id)
-        if status_bool is True:
-            status = "Present"
-            fill = present_fill
-        elif status_bool is False:
-            status = "Absent"
-            fill = absent_fill
-        else:
-            status = "Not Marked"
-            fill = None
-
-        values = [
-            student.roll_no,
-            student.name,
-            student.class_name,
-            student.section,
-            student.parent_mobile or "",
-            status,
-        ]
-        for col, val in enumerate(values, 1):
-            cell = ws.cell(row=row_num, column=col, value=val)
-            cell.border = thin
-            cell.alignment = Alignment(horizontal="center" if col != 2 else "left")
-            if fill and col == 6:
-                cell.fill = fill
-
-    ws.column_dimensions['A'].width = 8
-    ws.column_dimensions['B'].width = 28
-    ws.column_dimensions['C'].width = 8
-    ws.column_dimensions['D'].width = 10
-    ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 12
-
-    filename = f"Attendance_Class_{class_filter}_{date_filter}.xlsx"
     response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    filename = f"attendance_{selected_class}_{report_date}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
 
 @login_required
 @user_passes_test(is_admin)
-def correct_attendance(request, student_id):
-    """Admin-only: fix a wrongly marked attendance record for a given date."""
-    if request.method != 'POST':
-        return redirect('attendance_history')
+def export_teacher_attendance(request):
+    selected_date = request.GET.get('date', '').strip()
+    report_date = get_report_date(selected_date)
 
-    date_str = get_report_date(request.POST.get('date')).isoformat()
-    class_filter = request.POST.get('class', '')
-    roll_filter = request.POST.get('roll', '')
-    new_status = request.POST.get('status')  # 'present' or 'absent'
-    send_sms_flag = request.POST.get('send_sms') == 'yes'
+    teachers = Teacher.objects.all().order_by('employment_type', 'name')
+    att_map = {
+        ta.teacher_id: ta.is_present
+        for ta in TeacherAttendance.objects.filter(date=report_date)
+    }
 
-    redirect_url = f"{reverse('attendance_history')}?class={class_filter}&roll={roll_filter}&date={date_str}"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Teacher Attendance"
 
-    if new_status not in ('present', 'absent'):
-        return redirect(redirect_url)
+    headers = ["Name", "Type", "Phone", "Status"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font = Font(bold=True)
 
-    student = get_object_or_404(Student, id=student_id)
-    Attendance.objects.update_or_create(
-        student=student,
-        date=date_str,
-        defaults={'is_present': new_status == 'present'}
+    for i, t in enumerate(teachers, 2):
+        status = "Present" if att_map.get(t.id) is True else ("Absent" if att_map.get(t.id) is False else "Not Marked")
+        emp = "Full-time" if t.employment_type == Teacher.EMPLOYMENT_FULL else "Part-time"
+        ws.cell(row=i, column=1, value=t.name)
+        ws.cell(row=i, column=2, value=emp)
+        ws.cell(row=i, column=3, value=t.phone or "")
+        ws.cell(row=i, column=4, value=status)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"teacher_attendance_{report_date}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+@login_required
+@user_passes_test(is_admin)
+def send_pending_sms(request):
+    """Manually trigger sending of queued absence SMS (students + teachers)."""
+    today = timezone.now().date()
+    date_str = today.strftime('%d-%m-%Y')
+
+    # Student SMS
+    pending_student = list(
+        AbsenceSms.objects.filter(date=today, sent=False).select_related('student')
+    )
+    students = [ps.student for ps in pending_student]
+
+    def student_number(s):
+        return s.phone
+
+    sent_s, failed_s = send_absent_sms(
+        students,
+        build_absent_message,
+        date_str,
+        student_number,
     )
 
-    if new_status == 'absent' and send_sms_flag and student.parent_mobile:
-        message = build_absent_message(
-            student.name,
-            date_str,
-            roll_no=student.roll_no,
-            class_name=f"{student.class_name}{student.section}".strip(),
-        )
-        send_sms(student.parent_mobile, message)
+    if sent_s:
+        AbsenceSms.objects.filter(
+            student__in=[s for s in students if s.phone],
+            date=today,
+            sent=False,
+        ).update(sent=True)
 
-    return redirect(redirect_url)
+    # Teacher SMS
+    pending_teacher = list(
+        TeacherAbsenceSms.objects.filter(date=today, sent=False).select_related('teacher')
+    )
+    teachers = [pt.teacher for pt in pending_teacher]
+
+    def teacher_number(t):
+        return t.phone
+
+    sent_t, failed_t = send_absent_sms(
+        teachers,
+        build_teacher_absent_message,
+        date_str,
+        teacher_number,
+    )
+
+    if sent_t:
+        TeacherAbsenceSms.objects.filter(
+            teacher__in=[t for t in teachers if t.phone],
+            date=today,
+            sent=False,
+        ).update(sent=True)
+
+    return render(request, 'attendance/send_sms_result.html', {
+        'sent_students': sent_s,
+        'failed_students': failed_s,
+        'sent_teachers': sent_t,
+        'failed_teachers': failed_t,
+        'date': today,
+    })
+
+def health(request):
+    from django.http import JsonResponse
+    return JsonResponse({'status': 'ok'})
