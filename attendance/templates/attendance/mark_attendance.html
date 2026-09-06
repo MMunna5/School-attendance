@@ -115,8 +115,7 @@
       <div class="text-xs text-present font-semibold mt-1">Complete · {{ status.student_count }}</div>
       {% else %}
       <div class="text-xs text-amber-700 font-semibold mt-1">
-        Pending: {{ status.attendance_count }}/
-        <span>{{ status.student_count }}</span>
+        Pending: {{ status.attendance_count }}/{{ status.student_count }}
       </div>
       {% endif %}
     </a>
@@ -162,22 +161,20 @@
         <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-absent text-white">Absent</span>
         {% endif %}
         {% else %}
-        <!-- Present (default checked) -->
+        <!-- Present (DEFAULT SELECTED) -->
         <label class="cursor-pointer">
-          <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" {{
-            item.present_checked }}>
+          <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" checked>
           <span
-            class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
+            class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-present text-white border border-present transition">
             Present
           </span>
         </label>
 
         <!-- Absent -->
         <label class="cursor-pointer">
-          <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only" {{
-            item.absent_checked }}>
+          <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only">
           <span
-            class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">
+            class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white text-ink-soft border border-gray-200 transition">
             Absent
           </span>
         </label>
@@ -207,13 +204,13 @@
     const presentButton = row.querySelector('.present-option');
     const absentButton = row.querySelector('.absent-option');
 
-    const activeClasses = ['bg-present', 'bg-absent', 'text-white', 'border-present', 'border-absent'];
-    const inactiveClasses = ['bg-white', 'text-ink-soft', 'border-gray-200'];
+    if (!presentButton || !absentButton) return;
 
-    presentButton.classList.remove(...activeClasses, ...inactiveClasses);
-    absentButton.classList.remove(...activeClasses, ...inactiveClasses);
+    // Reset
+    presentButton.className = 'present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold transition border';
+    absentButton.className = 'absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold transition border';
 
-    if (presentInput.checked) {
+    if (presentInput && presentInput.checked) {
       presentButton.classList.add('bg-present', 'text-white', 'border-present');
       absentButton.classList.add('bg-white', 'text-ink-soft', 'border-gray-200');
     } else {
@@ -222,9 +219,15 @@
     }
   }
 
-  document.querySelectorAll('.student-attendance-row input[type="radio"]').forEach((input) => {
-    input.addEventListener('change', () => syncAttendanceButtons(input));
-    if (input.checked) syncAttendanceButtons(input);
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.student-attendance-row input[type="radio"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        syncAttendanceButtons(input);
+      });
+      if (input.checked) {
+        syncAttendanceButtons(input);
+      }
+    });
   });
 
   function confirmSave() {
