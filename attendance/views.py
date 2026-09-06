@@ -4,6 +4,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from concurrent.futures import ThreadPoolExecutor
@@ -119,6 +120,12 @@ def build_choice_options(values, selected_value):
 def build_choice_options_multi(values, selected_values):
     selected_set = {str(v) for v in selected_values}
     return [{'value': v, 'is_selected': (str(v) in selected_set)} for v in values]
+
+
+def get_report_date(value):
+    """Return a valid report date, falling back to today for malformed input."""
+    parsed = parse_date((value or '').strip())
+    return parsed or timezone.now().date()
 
 
 @login_required
@@ -1057,7 +1064,7 @@ def attendance_history(request):
     class_names = Student.objects.values_list('class_name', flat=True).distinct().order_by('class_name')
     class_filter = request.GET.get('class', '').strip()
     roll_filter = request.GET.get('roll', '').strip()
-    date_filter = request.GET.get('date', '') or timezone.now().date().isoformat()
+    date_filter = get_report_date(request.GET.get('date')).isoformat()
 
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
 
@@ -1098,7 +1105,7 @@ def attendance_history(request):
 @user_passes_test(is_admin)
 def export_attendance(request):
     class_filter = request.GET.get('class', '').strip()
-    date_filter = request.GET.get('date', '') or timezone.now().date().isoformat()
+    date_filter = get_report_date(request.GET.get('date')).isoformat()
 
     if not class_filter:
         return redirect('attendance_history')
@@ -1181,7 +1188,7 @@ def correct_attendance(request, student_id):
     if request.method != 'POST':
         return redirect('attendance_history')
 
-    date_str = request.POST.get('date')
+    date_str = get_report_date(request.POST.get('date')).isoformat()
     class_filter = request.POST.get('class', '')
     roll_filter = request.POST.get('roll', '')
     new_status = request.POST.get('status')  # 'present' or 'absent'

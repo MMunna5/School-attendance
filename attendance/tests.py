@@ -186,6 +186,24 @@ class ExportAndReportTests(TestCase):
         )
         self.assertIn("attachment; filename=", response['Content-Disposition'])
 
+    def test_class_attendance_reports_ignore_invalid_date(self):
+        response = self.client.get(
+            reverse('attendance_history'),
+            {'class': '8', 'date': 'not-a-date'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['date_filter'], timezone.now().date().isoformat())
+
+        response = self.client.get(
+            reverse('export_attendance'),
+            {'class': '8', 'date': 'not-a-date'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response['Content-Type'],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
     def test_export_teacher_attendance_excel(self):
         response = self.client.get(reverse('export_teacher_attendance'))
         self.assertEqual(response.status_code, 200)
