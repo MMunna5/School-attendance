@@ -285,6 +285,8 @@ class ExportAndReportTests(TestCase):
 
         class_names = [item['name'] for item in response.context['all_classes']]
         self.assertEqual(class_names, ['Play-1', 'Play-2', '1', '2', '10', 'Nine', 'Testing'])
+        record_class_names = [item['student'].class_name for item in response.context['records']]
+        self.assertEqual(record_class_names, class_names)
 
     def test_export_teacher_attendance_excel(self):
         response = self.client.get(reverse('export_teacher_attendance'))

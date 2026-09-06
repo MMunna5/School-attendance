@@ -385,7 +385,6 @@ def student_list(request):
 
     class_names = get_class_choices()
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
-
     students = Student.objects.all().order_by('class_name', 'section', 'roll_no')
     if class_filter:
         students = students.filter(class_name=class_filter)
@@ -1106,6 +1105,7 @@ def attendance_history(request):
     date_filter = get_report_date(request.GET.get('date')).isoformat()
 
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
+    class_order = {class_name: index for index, class_name in enumerate(class_names)}
 
     records = []
     if all_classes_selected or class_filter or roll_filter:
@@ -1114,7 +1114,15 @@ def attendance_history(request):
             students = students.filter(class_name=class_filter)
         if roll_filter:
             students = students.filter(roll_no__icontains=roll_filter)
-        students = students.order_by('class_name', 'section', 'roll_no')
+        students = list(students.order_by('class_name', 'section', 'roll_no'))
+        if all_classes_selected:
+            students.sort(
+                key=lambda student: (
+                    class_order.get(student.class_name, len(class_order)),
+                    student.section,
+                    student.roll_no,
+                )
+            )
 
         attendance_map = {
             a.student_id: a.is_present
