@@ -6,7 +6,8 @@ from django.utils import timezone
 from datetime import timedelta
 import requests
 
-from .models import Teacher, Student, Attendance, TeacherAttendance
+from .models import AbsenceSms, Teacher, Student, Attendance, TeacherAttendance
+from .management.commands.process_sms_queue import Command as SmsQueueCommand
 from .sms_utils import send_sms, append_school_name, build_absent_message, normalize_sms_number
 from .views import send_absent_sms
 
@@ -132,20 +133,19 @@ class ModelAndAttendanceTests(TestCase):
         self.assertContains(response, "Attendance for this class has already been taken today.")
         self.assertFalse(Attendance.objects.filter(student=new_student, date=timezone.now().date()).exists())
 
-    @patch('attendance.views.send_sms')
-    def test_same_day_resubmission_does_not_send_duplicate_sms(self, mock_send_sms):
-        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+    def test_same_day_resubmission_queues_sms_only_once(self):
         client = Client()
         client.login(username="t_rahim", password="password123")
         post_data = {f'att_{self.student.id}': 'absent'}
 
         first_response = client.post(reverse('attendance_page'), post_data)
         self.assertEqual(first_response.status_code, 200)
-        self.assertEqual(mock_send_sms.call_count, 1)
+        self.assertEqual(AbsenceSms.objects.filter(student=self.student).count(), 1)
+        self.assertEqual(AbsenceSms.objects.get(student=self.student).status, AbsenceSms.STATUS_PENDING)
 
         second_response = client.post(reverse('attendance_page'), post_data)
         self.assertEqual(second_response.status_code, 200)
-        self.assertEqual(mock_send_sms.call_count, 1)
+        self.assertEqual(AbsenceSms.objects.filter(student=self.student).count(), 1)
 
     @patch('attendance.views.time.sleep')
     @patch('attendance.views.send_sms')
@@ -197,6 +197,21 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['class_statuses'][0]['name'], 'Ten')
         self.assertFalse(response.context['class_statuses'][0]['is_complete'])
+
+    @patch('attendance.management.commands.process_sms_queue.send_sms')
+    def test_sms_worker_marks_queued_message_sent(self, mock_send_sms):
+        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+        message = AbsenceSms.objects.create(
+            student=self.student,
+            date=timezone.now().date(),
+        )
+
+        SmsQueueCommand().deliver(message)
+
+        message.refresh_from_db()
+        self.assertEqual(message.status, AbsenceSms.STATUS_SENT)
+        self.assertIsNotNone(message.sent_at)
+        mock_send_sms.assert_called_once()
 
 
 class ExportAndReportTests(TestCase):

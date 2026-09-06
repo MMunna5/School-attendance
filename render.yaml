@@ -24,3 +24,22 @@ services:
         sync: false
       - key: DEFAULT_TEACHER_PASSWORD
         sync: false
+
+  - type: worker
+    name: school-attendance-sms-worker
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: python manage.py process_sms_queue
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SMS_TOKEN
+        sync: false
+      - key: SCHOOL_SHORT_NAME
+        sync: false

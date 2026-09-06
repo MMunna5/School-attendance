@@ -10,7 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count
 import time
 from django.conf import settings
-from .models import Teacher, Student, Attendance, TeacherAttendance
+from .models import AbsenceSms, Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
 from .sms_utils import build_absent_message, build_teacher_absent_message, send_sms
 import openpyxl
@@ -270,8 +270,6 @@ def mark_attendance(request):
     students = load_students(current_class) if current_class else Student.objects.none()
 
     today = timezone.now().date()
-    date_str = today.strftime("%d-%b-%y")
-
     already_marked = False
     if current_class:
         already_marked = Attendance.objects.filter(
@@ -279,7 +277,7 @@ def mark_attendance(request):
         ).exists()
 
     saved = False
-    sms_sent_count = 0
+    sms_queued_count = 0
     sms_warning = None
 
     if request.method == 'POST' and current_class and not already_marked:
@@ -316,21 +314,14 @@ def mark_attendance(request):
         class_student_count = Student.objects.filter(class_name=current_class).count()
 
         if not already_marked and class_student_count and attendance_count == class_student_count:
-            sms_sent_count, sms_failed = send_absent_sms(
-                absent_students,
-                build_absent_message,
-                date_str,
-                lambda student: student.parent_mobile,
-                lambda student: {
-                    'roll_no': student.roll_no,
-                    'class_name': student.class_name,
-                },
+            queued_messages = AbsenceSms.objects.bulk_create(
+                [AbsenceSms(student=student, date=today) for student in absent_students],
+                ignore_conflicts=True,
             )
+            sms_queued_count = len(queued_messages)
 
             saved = True
             already_marked = True
-            if sms_failed:
-                sms_warning = f"SMS could not be sent to: {', '.join(sms_failed)}"
         else:
             saved = True
             already_marked = True
@@ -372,7 +363,7 @@ def mark_attendance(request):
         'student_rows': student_rows,
         'today': today,
         'saved': saved,
-        'sms_sent_count': sms_sent_count,
+        'sms_queued_count': sms_queued_count,
         'sms_warning': sms_warning,
         'is_admin_user': is_admin_user,
         'show_class_selector': show_class_selector,
