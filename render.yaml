@@ -42,4 +42,4 @@ services:
       - key: SMS_TOKEN
         sync: false
       - key: SCHOOL_SHORT_NAME
-        sync: false
+        value: "Shaheed Nur HM School"

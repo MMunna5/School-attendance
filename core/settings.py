@@ -159,7 +159,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # SMS and School configuration via environment variables
 SMS_TOKEN = os.environ.get("SMS_TOKEN", "")
-SCHOOL_SHORT_NAME = os.environ.get("SCHOOL_SHORT_NAME", "Shaheed Nur Hossain Memorial School")
+SCHOOL_SHORT_NAME = os.environ.get("SCHOOL_SHORT_NAME", "Shaheed Nur HM School")
 SCHOOL_FULL_NAME = os.environ.get(
     "SCHOOL_FULL_NAME", "Shaheed Nur Hossain Memorial School, Biral, Dinajpur"
 )
