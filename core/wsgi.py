@@ -18,9 +18,14 @@ application = get_wsgi_application()
 
 
 def start_sms_worker():
-	from attendance.management.commands.process_sms_queue import Command
+	print('SMS queue worker starting from WSGI.', flush=True)
+	try:
+		from attendance.management.commands.process_sms_queue import Command
 
-	Command().handle()
+		Command().handle()
+	except Exception as exc:
+		print(f'SMS queue worker stopped: {exc}', flush=True)
+		raise
 
 
 if os.environ.get('DEBUG', 'False').lower() not in ('true', '1', 'yes'):
