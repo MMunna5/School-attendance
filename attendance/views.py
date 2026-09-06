@@ -289,24 +289,47 @@ def mark_attendance(request):
             students = load_students(current_class)
             all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
 
-        # Simple check without select_for_update (avoids timeout/lock on Render free)
+        # Simple check (no select_for_update)
         already_marked = Attendance.objects.filter(
             student__class_name=current_class, date=today
         ).exists()
 
         if not already_marked:
+            to_create = []
+            to_update = []
+
+            # Existing attendance for this class + date
+            existing = {
+                a.student_id: a
+                for a in Attendance.objects.filter(
+                    student__class_name=current_class, date=today
+                )
+            }
+
             for student in students:
                 status = request.POST.get(f'att_{student.id}', 'present')
                 is_present = status == 'present'
 
-                Attendance.objects.update_or_create(
-                    student=student,
-                    date=today,
-                    defaults={'is_present': is_present}
-                )
+                if student.id in existing:
+                    att = existing[student.id]
+                    if att.is_present != is_present:
+                        att.is_present = is_present
+                        to_update.append(att)
+                else:
+                    to_create.append(Attendance(
+                        student=student,
+                        date=today,
+                        is_present=is_present
+                    ))
 
                 if not is_present:
                     absent_students.append(student)
+
+            # Bulk operations (fast, no timeout)
+            if to_create:
+                Attendance.objects.bulk_create(to_create, ignore_conflicts=True)
+            if to_update:
+                Attendance.objects.bulk_update(to_update, ['is_present'])
 
             attendance_count = Attendance.objects.filter(
                 student__class_name=current_class,
