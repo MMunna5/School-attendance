@@ -6,8 +6,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from attendance.models import AbsenceSms
-from attendance.sms_utils import build_absent_message, send_sms
+from attendance.models import AbsenceSms, TeacherAbsenceSms
+from attendance.sms_utils import build_absent_message, build_teacher_absent_message, send_sms
 
 
 class Command(BaseCommand):
@@ -21,12 +21,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('SMS queue worker started.')
         while True:
-            message = self.claim_next_message()
-            if message is None:
+            student_message = self.claim_next_message()
+            teacher_message = None if student_message else self.claim_next_teacher_message()
+            if student_message is None and teacher_message is None:
                 time.sleep(self.poll_seconds)
                 continue
 
-            self.deliver(message)
+            if student_message is not None:
+                self.deliver(student_message)
+            else:
+                self.deliver_teacher(teacher_message)
             time.sleep(1)
 
     def claim_next_message(self):
@@ -39,6 +43,29 @@ class Command(BaseCommand):
             message = (
                 AbsenceSms.objects.select_for_update()
                 .select_related('student')
+                .filter(eligible)
+                .filter(Q(next_attempt_at__isnull=True) | Q(next_attempt_at__lte=now))
+                .order_by('created_at')
+                .first()
+            )
+            if message is None:
+                return None
+
+            message.attempts += 1
+            message.next_attempt_at = now + timedelta(minutes=self.claim_minutes)
+            message.save(update_fields=['attempts', 'next_attempt_at', 'last_error'])
+            return message
+
+    def claim_next_teacher_message(self):
+        now = timezone.now()
+        eligible = Q(status=TeacherAbsenceSms.STATUS_PENDING) | Q(
+            status=TeacherAbsenceSms.STATUS_FAILED,
+            attempts__lt=self.max_attempts,
+        )
+        with transaction.atomic():
+            message = (
+                TeacherAbsenceSms.objects.select_for_update()
+                .select_related('teacher')
                 .filter(eligible)
                 .filter(Q(next_attempt_at__isnull=True) | Q(next_attempt_at__lte=now))
                 .order_by('created_at')
@@ -84,6 +111,43 @@ class Command(BaseCommand):
     def mark_failed(self, message, error):
         AbsenceSms.objects.filter(pk=message.pk).update(
             status=AbsenceSms.STATUS_FAILED,
+            next_attempt_at=(
+                timezone.now() + timedelta(minutes=self.retry_minutes)
+                if message.attempts < self.max_attempts
+                else None
+            ),
+            last_error=str(error)[:1000],
+        )
+
+    def deliver_teacher(self, message):
+        teacher = message.teacher
+        if not teacher.mobile:
+            self.mark_teacher_failed(message, 'No teacher phone number.')
+            return
+
+        sms = build_teacher_absent_message(
+            teacher.name,
+            message.date.strftime('%d-%b-%y'),
+        )
+        try:
+            success, response = send_sms(teacher.mobile, sms)
+        except Exception as exc:
+            success = False
+            response = str(exc)
+
+        if success:
+            TeacherAbsenceSms.objects.filter(pk=message.pk).update(
+                status=TeacherAbsenceSms.STATUS_SENT,
+                next_attempt_at=None,
+                last_error='',
+                sent_at=timezone.now(),
+            )
+        else:
+            self.mark_teacher_failed(message, response or 'SMS provider rejected the request.')
+
+    def mark_teacher_failed(self, message, error):
+        TeacherAbsenceSms.objects.filter(pk=message.pk).update(
+            status=TeacherAbsenceSms.STATUS_FAILED,
             next_attempt_at=(
                 timezone.now() + timedelta(minutes=self.retry_minutes)
                 if message.attempts < self.max_attempts

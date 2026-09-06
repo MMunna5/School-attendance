@@ -10,7 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count
 import time
 from django.conf import settings
-from .models import AbsenceSms, Teacher, Student, Attendance, TeacherAttendance
+from .models import AbsenceSms, TeacherAbsenceSms, Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
 from .sms_utils import build_absent_message, build_teacher_absent_message, send_sms
 import openpyxl
@@ -909,10 +909,9 @@ def teacher_delete(request, teacher_id):
 @user_passes_test(is_admin)
 def mark_teacher_attendance(request):
     today = timezone.now().date()
-    date_str = today.strftime("%d-%b-%y")
     saved = False
     saved_type = None
-    sms_sent_count = 0
+    sms_queued_count = 0
     sms_warning = None
 
     full_already_marked = TeacherAttendance.objects.filter(
@@ -933,36 +932,39 @@ def mark_teacher_attendance(request):
             employment_type = None
 
         if employment_type:
-            section_teachers = Teacher.objects.filter(employment_type=employment_type).order_by('id')
-            absent_teachers = []
-            for teacher in section_teachers:
-                status = request.POST.get(f'tatt_{teacher.id}', 'present')
-                is_present = status == 'present'
-
-                TeacherAttendance.objects.update_or_create(
-                    teacher=teacher,
+            with transaction.atomic():
+                already_marked = TeacherAttendance.objects.select_for_update().filter(
                     date=today,
-                    defaults={'is_present': is_present}
-                )
+                    teacher__employment_type=employment_type,
+                ).exists()
+                if not already_marked:
+                    section_teachers = Teacher.objects.filter(employment_type=employment_type).order_by('id')
+                    absent_teachers = []
+                    for teacher in section_teachers:
+                        status = request.POST.get(f'tatt_{teacher.id}', 'present')
+                        is_present = status == 'present'
 
-                if not is_present:
-                    absent_teachers.append(teacher)
+                        TeacherAttendance.objects.update_or_create(
+                            teacher=teacher,
+                            date=today,
+                            defaults={'is_present': is_present}
+                        )
 
-            sms_sent_count, sms_failed = send_absent_sms(
-                absent_teachers,
-                build_teacher_absent_message,
-                date_str,
-                lambda teacher: teacher.mobile,
-            )
+                        if not is_present:
+                            absent_teachers.append(teacher)
 
-            saved = True
-            saved_type = section
-            if section == 'full':
-                full_already_marked = True
-            else:
-                part_already_marked = True
-            if sms_failed:
-                sms_warning = f"SMS could not be sent to: {', '.join(sms_failed)}"
+                    queued_messages = TeacherAbsenceSms.objects.bulk_create(
+                        [TeacherAbsenceSms(teacher=teacher, date=today) for teacher in absent_teachers],
+                        ignore_conflicts=True,
+                    )
+                    sms_queued_count = len(queued_messages)
+
+                    saved = True
+                    saved_type = section
+                    if section == 'full':
+                        full_already_marked = True
+                    else:
+                        part_already_marked = True
 
     teachers = Teacher.objects.all().order_by('id')
     attendance_map = {
@@ -993,7 +995,7 @@ def mark_teacher_attendance(request):
         'today': today,
         'saved': saved,
         'saved_type': saved_type,
-        'sms_sent_count': sms_sent_count,
+        'sms_queued_count': sms_queued_count,
         'sms_warning': sms_warning,
         'full_already_marked': full_already_marked,
         'part_already_marked': part_already_marked,

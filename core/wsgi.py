@@ -28,5 +28,8 @@ def start_sms_worker():
 		raise
 
 
-if os.environ.get('DEBUG', 'False').lower() not in ('true', '1', 'yes'):
+if (
+	os.environ.get('DEBUG', 'False').lower() not in ('true', '1', 'yes')
+	and os.environ.get('SMS_QUEUE_WORKER_MANAGED') != '1'
+):
 	threading.Thread(target=start_sms_worker, name='sms-queue-worker', daemon=True).start()

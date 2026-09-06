@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+export SMS_QUEUE_WORKER_MANAGED=1
 python manage.py process_sms_queue &
 worker_pid=$!
 

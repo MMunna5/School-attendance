@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 import requests
 
-from .models import AbsenceSms, Teacher, Student, Attendance, TeacherAttendance
+from .models import AbsenceSms, TeacherAbsenceSms, Teacher, Student, Attendance, TeacherAttendance
 from .management.commands.process_sms_queue import Command as SmsQueueCommand
 from .sms_utils import send_sms, append_school_name, build_absent_message, normalize_sms_number
 from .views import send_absent_sms
@@ -213,6 +213,42 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(message.status, AbsenceSms.STATUS_SENT)
         self.assertIsNotNone(message.sent_at)
         mock_send_sms.assert_called_once()
+
+    @patch('attendance.management.commands.process_sms_queue.send_sms')
+    def test_sms_worker_marks_teacher_message_sent(self, mock_send_sms):
+        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+        message = TeacherAbsenceSms.objects.create(
+            teacher=self.teacher,
+            date=timezone.now().date(),
+        )
+
+        command = SmsQueueCommand()
+        command.deliver_teacher(message)
+
+        message.refresh_from_db()
+        self.assertEqual(message.status, TeacherAbsenceSms.STATUS_SENT)
+        self.assertIsNotNone(message.sent_at)
+        mock_send_sms.assert_called_once()
+
+    def test_teacher_attendance_queues_absence_sms(self):
+        admin = User.objects.create_superuser(
+            username='teacher_attendance_admin',
+            password='password123',
+        )
+        client = Client()
+        client.force_login(admin)
+
+        response = client.post(
+            reverse('mark_teacher_attendance'),
+            {
+                'section': 'full',
+                f'tatt_{self.teacher.id}': 'absent',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TeacherAbsenceSms.objects.filter(teacher=self.teacher).count(), 1)
+        self.assertContains(response, 'absence SMS queued for background delivery')
 
 
 class ExportAndReportTests(TestCase):
