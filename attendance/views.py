@@ -290,7 +290,7 @@ def mark_attendance(request):
                 student__class_name=current_class, date=today
             ).exists()
 
-        # Teacher: only once. Admin: always can change (superpower)
+        # Teacher: only once. Admin: always can edit (superpower)
         can_submit = is_admin_user or not already_marked
 
         if can_submit:
@@ -356,7 +356,7 @@ def mark_attendance(request):
                 already_marked = True
                 sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
 
-    # For template: teacher sees locked if already marked, admin always sees editable
+    # Teacher sees locked, Admin always editable
     show_as_locked = already_marked and not is_admin_user
 
     class_statuses = get_class_attendance_statuses(class_choices, today)
@@ -402,7 +402,7 @@ def mark_attendance(request):
         'all_classes': all_classes,
         'class_statuses': class_statuses,
         'current_class': current_class,
-        'already_marked': show_as_locked,   # teacher sees locked, admin sees editable
+        'already_marked': show_as_locked,
         'present_count': present_count,
         'absent_count': absent_count,
         'total_students': students.count() if hasattr(students, 'count') else len(students),
