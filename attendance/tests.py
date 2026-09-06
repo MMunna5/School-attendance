@@ -188,6 +188,17 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(response.context['student_rows'][0]['present_checked'], 'checked')
         self.assertEqual(response.context['student_rows'][0]['absent_checked'], '')
 
+    def test_new_attendance_defaults_every_student_to_present(self):
+        client = Client()
+        client.login(username="t_rahim", password="password123")
+
+        response = client.get(reverse('attendance_page'))
+
+        self.assertEqual(response.context['student_rows'][0]['present_checked'], 'checked')
+        self.assertEqual(response.context['student_rows'][0]['absent_checked'], '')
+        self.assertContains(response, 'peer-checked:bg-present')
+        self.assertContains(response, 'peer-checked:bg-absent')
+
     def test_attendance_page_shows_class_completion_status(self):
         client = Client()
         client.login(username="t_rahim", password="password123")
