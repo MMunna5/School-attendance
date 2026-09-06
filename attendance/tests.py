@@ -305,6 +305,13 @@ class ExportAndReportTests(TestCase):
         self.assertEqual(len(response.context['records']), 1)
         self.assertContains(response, "All Classes")
 
+        legacy_response = self.client.get(
+            reverse('attendance_history'),
+            {'class': 'all'},
+        )
+        self.assertEqual(legacy_response.status_code, 200)
+        self.assertTrue(legacy_response.context['all_classes_selected'])
+
     def test_attendance_history_uses_natural_class_order(self):
         for class_name in ('Testing', '10', '2', '1', 'Play-2', 'Play-1'):
             Student.objects.create(

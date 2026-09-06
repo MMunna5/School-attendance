@@ -1102,7 +1102,7 @@ def export_teacher_attendance(request):
 def attendance_history(request):
     class_names = get_class_choices()
     class_filter = request.GET.get('class', '').strip()
-    all_classes_selected = class_filter == '__all__'
+    all_classes_selected = class_filter in ('__all__', 'all')
     roll_filter = request.GET.get('roll', '').strip()
     date_filter = get_report_date(request.GET.get('date')).isoformat()
 
