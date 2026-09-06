@@ -160,6 +160,16 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(response.context['student_rows'][0]['present_checked'], 'checked')
         self.assertEqual(response.context['student_rows'][0]['absent_checked'], '')
 
+    def test_attendance_page_shows_class_completion_status(self):
+        client = Client()
+        client.login(username="t_rahim", password="password123")
+
+        response = client.get(reverse('attendance_page'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['class_statuses'][0]['name'], 'Ten')
+        self.assertFalse(response.context['class_statuses'][0]['is_complete'])
+
 
 class ExportAndReportTests(TestCase):
     def setUp(self):
@@ -203,6 +213,17 @@ class ExportAndReportTests(TestCase):
             response['Content-Type'],
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
+    def test_attendance_history_can_show_all_classes(self):
+        response = self.client.get(
+            reverse('attendance_history'),
+            {'class': '__all__'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['all_classes_selected'])
+        self.assertEqual(len(response.context['records']), 1)
+        self.assertContains(response, "All Classes")
 
     def test_export_teacher_attendance_excel(self):
         response = self.client.get(reverse('export_teacher_attendance'))

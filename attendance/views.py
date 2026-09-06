@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
@@ -126,6 +127,36 @@ def get_report_date(value):
     """Return a valid report date, falling back to today for malformed input."""
     parsed = parse_date((value or '').strip())
     return parsed or timezone.now().date()
+
+
+def get_class_attendance_statuses(class_names, date):
+    student_counts = {
+        row['class_name']: row['total']
+        for row in Student.objects.filter(class_name__in=class_names)
+        .values('class_name')
+        .annotate(total=Count('id'))
+    }
+    attendance_counts = {
+        row['student__class_name']: row['total']
+        for row in Attendance.objects.filter(
+            student__class_name__in=class_names,
+            date=date,
+        )
+        .values('student__class_name')
+        .annotate(total=Count('student_id'))
+    }
+    return [
+        {
+            'name': class_name,
+            'student_count': student_counts.get(class_name, 0),
+            'attendance_count': attendance_counts.get(class_name, 0),
+            'is_complete': (
+                student_counts.get(class_name, 0) > 0
+                and attendance_counts.get(class_name, 0) == student_counts.get(class_name, 0)
+            ),
+        }
+        for class_name in class_names
+    ]
 
 
 @login_required
@@ -301,6 +332,7 @@ def mark_attendance(request):
             already_marked = True
             sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
 
+    class_statuses = get_class_attendance_statuses(class_choices, today)
     attendance_map = {}
     if current_class:
         attendance_map = {
@@ -341,6 +373,7 @@ def mark_attendance(request):
         'is_admin_user': is_admin_user,
         'show_class_selector': show_class_selector,
         'all_classes': all_classes,
+        'class_statuses': class_statuses,
         'current_class': current_class,
         'already_marked': already_marked,
         'present_count': present_count,
@@ -1073,15 +1106,16 @@ def export_teacher_attendance(request):
 def attendance_history(request):
     class_names = Student.objects.values_list('class_name', flat=True).distinct().order_by('class_name')
     class_filter = request.GET.get('class', '').strip()
+    all_classes_selected = class_filter == '__all__'
     roll_filter = request.GET.get('roll', '').strip()
     date_filter = get_report_date(request.GET.get('date')).isoformat()
 
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
 
     records = []
-    if class_filter or roll_filter:
+    if all_classes_selected or class_filter or roll_filter:
         students = Student.objects.all()
-        if class_filter:
+        if class_filter and not all_classes_selected:
             students = students.filter(class_name=class_filter)
         if roll_filter:
             students = students.filter(roll_no__icontains=roll_filter)
@@ -1104,6 +1138,7 @@ def attendance_history(request):
     return render(request, 'attendance/attendance_history.html', {
         'all_classes': all_classes,
         'class_filter': class_filter,
+        'all_classes_selected': all_classes_selected,
         'roll_filter': roll_filter,
         'date_filter': date_filter,
         'records': records,
