@@ -72,7 +72,7 @@
 {% if saved %}
 <div class="bg-green-50 border border-green-200 text-forest rounded-xl p-4 mb-5 text-sm">
   Attendance saved successfully.
-  {% if sms_sent_count %} · {{ sms_sent_count }} absence SMS sent.{% endif %}
+  {% if sms_queued_count %} · {{ sms_queued_count }} absence SMS queued for background delivery.{% endif %}
 </div>
 {% endif %}
 
@@ -135,14 +135,10 @@
     {% for item in student_rows %}
     <div
       class="student-attendance-row bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
-
-      <!-- Roll number -->
       <div
         class="w-9 h-9 rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
         {{ item.student.roll_no }}
       </div>
-
-      <!-- Student info -->
       <div class="flex-1 min-w-[calc(100%-3rem)] sm:min-w-0">
         <div class="font-semibold text-forest-deep break-words text-sm">{{ item.student.name }}</div>
         {% if item.student.parent_mobile %}
@@ -151,8 +147,6 @@
         <div class="text-[11px] text-absent">No phone</div>
         {% endif %}
       </div>
-
-      <!-- Attendance buttons -->
       <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
         {% if already_marked %}
         {% if item.is_present %}
@@ -161,7 +155,6 @@
         <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-absent text-white">Absent</span>
         {% endif %}
         {% else %}
-        <!-- Present (DEFAULT SELECTED) -->
         <label class="cursor-pointer">
           <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" checked>
           <span
@@ -169,8 +162,6 @@
             Present
           </span>
         </label>
-
-        <!-- Absent -->
         <label class="cursor-pointer">
           <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only">
           <span
@@ -198,15 +189,11 @@
   function syncAttendanceButtons(input) {
     const row = input.closest('.student-attendance-row');
     if (!row) return;
-
     const presentInput = row.querySelector('input[value="present"]');
-    const absentInput = row.querySelector('input[value="absent"]');
     const presentButton = row.querySelector('.present-option');
     const absentButton = row.querySelector('.absent-option');
-
     if (!presentButton || !absentButton) return;
 
-    // Reset
     presentButton.className = 'present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold transition border';
     absentButton.className = 'absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold transition border';
 
@@ -221,12 +208,8 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.student-attendance-row input[type="radio"]').forEach(function (input) {
-      input.addEventListener('change', function () {
-        syncAttendanceButtons(input);
-      });
-      if (input.checked) {
-        syncAttendanceButtons(input);
-      }
+      input.addEventListener('change', function () { syncAttendanceButtons(input); });
+      if (input.checked) syncAttendanceButtons(input);
     });
   });
 
