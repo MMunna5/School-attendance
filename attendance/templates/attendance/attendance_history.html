@@ -3,6 +3,7 @@
 {% block title %}Attendance History - Attendance Register{% endblock %}
 {% block eyebrow %}Admin{% endblock %}
 {% block header_title %}Attendance History{% endblock %}
+
 {% block header_links %}
 <a href="{% url 'dashboard' %}" class="nav-btn">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -77,8 +78,9 @@
     </div>
     <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
         <div class="text-[11px] uppercase tracking-widest text-ink-soft">Class</div>
-        <div class="text-xl font-bold text-forest-deep">{% if all_classes_selected %}All Classes{% else %}{{
-            class_filter|default:"All" }}{% endif %}</div>
+        <div class="text-xl font-bold text-forest-deep">
+            {% if all_classes_selected %}All Classes{% else %}{{ class_filter|default:"All" }}{% endif %}
+        </div>
     </div>
 </div>
 
