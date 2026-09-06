@@ -1099,7 +1099,7 @@ def export_teacher_attendance(request):
 @login_required
 @user_passes_test(is_admin)
 def attendance_history(request):
-    class_names = Student.objects.values_list('class_name', flat=True).distinct().order_by('class_name')
+    class_names = get_class_choices()
     class_filter = request.GET.get('class', '').strip()
     all_classes_selected = class_filter == '__all__'
     roll_filter = request.GET.get('roll', '').strip()

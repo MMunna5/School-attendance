@@ -197,6 +197,7 @@ class ModelAndAttendanceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['class_statuses'][0]['name'], 'Ten')
         self.assertFalse(response.context['class_statuses'][0]['is_complete'])
+        self.assertNotContains(response, '{{ status.student_count }}')
 
     @patch('attendance.management.commands.process_sms_queue.send_sms')
     def test_sms_worker_marks_queued_message_sent(self, mock_send_sms):
@@ -267,6 +268,23 @@ class ExportAndReportTests(TestCase):
         self.assertTrue(response.context['all_classes_selected'])
         self.assertEqual(len(response.context['records']), 1)
         self.assertContains(response, "All Classes")
+
+    def test_attendance_history_uses_natural_class_order(self):
+        for class_name in ('Testing', '10', '2', '1', 'Play-2', 'Play-1'):
+            Student.objects.create(
+                roll_no=class_name,
+                name=f"Student {class_name}",
+                class_name=class_name,
+                section='A',
+            )
+
+        response = self.client.get(
+            reverse('attendance_history'),
+            {'class': '__all__'},
+        )
+
+        class_names = [item['name'] for item in response.context['all_classes']]
+        self.assertEqual(class_names, ['Play-1', 'Play-2', '1', '2', '10', 'Nine', 'Testing'])
 
     def test_export_teacher_attendance_excel(self):
         response = self.client.get(reverse('export_teacher_attendance'))
