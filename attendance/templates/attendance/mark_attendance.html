@@ -135,7 +135,7 @@
   <div class="space-y-2 mb-6">
     {% for item in student_rows %}
     <div
-      class="bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
+      class="student-attendance-row bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
       <div
         class="w-9 h-9 rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
         {{ item.student.roll_no }}
@@ -160,7 +160,7 @@
           <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" {{
             item.present_checked }}>
           <span
-            class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
+            class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
             Present
           </span>
         </label>
@@ -168,7 +168,7 @@
           <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only" {{
             item.absent_checked }}>
           <span
-            class="block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">
+            class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">
             Absent
           </span>
         </label>
@@ -189,6 +189,34 @@
 </form>
 
 <script>
+  function syncAttendanceButtons(input) {
+    const row = input.closest('.student-attendance-row');
+    if (!row) return;
+
+    const presentInput = row.querySelector('input[value="present"]');
+    const absentInput = row.querySelector('input[value="absent"]');
+    const presentButton = row.querySelector('.present-option');
+    const absentButton = row.querySelector('.absent-option');
+    const activeClasses = ['bg-present', 'bg-absent', 'text-white', 'border-present', 'border-absent'];
+    const inactiveClasses = ['bg-white', 'text-ink-soft', 'border-gray-200'];
+
+    presentButton.classList.remove(...activeClasses, ...inactiveClasses);
+    absentButton.classList.remove(...activeClasses, ...inactiveClasses);
+
+    if (presentInput.checked) {
+      presentButton.classList.add('bg-present', 'text-white', 'border-present');
+      absentButton.classList.add('bg-white', 'text-ink-soft', 'border-gray-200');
+    } else {
+      presentButton.classList.add('bg-white', 'text-ink-soft', 'border-gray-200');
+      absentButton.classList.add('bg-absent', 'text-white', 'border-absent');
+    }
+  }
+
+  document.querySelectorAll('.student-attendance-row input[type="radio"]').forEach((input) => {
+    input.addEventListener('change', () => syncAttendanceButtons(input));
+    if (input.checked) syncAttendanceButtons(input);
+  });
+
   function confirmSave() {
     return confirm("Save attendance and send SMS? This can only be done once per day for this class.");
   }
