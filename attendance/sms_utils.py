@@ -19,13 +19,13 @@ def build_absent_message(student_name, date_str, roll_no=None, class_name=None):
         student_details += ")"
     elif class_name:
         student_details += f" (Class: {class_name})"
+
     base = (
         f"Dear Parents,\n"
-        f"Your child {student_details} was ABSENT on {date_str}. "
-        f"Contact the Authority if this is a mistake."
+        f"{student_details} was ABSENT on {date_str}. "
+        f"Contact Authority if mistake."
     )
     return append_school_name(base)
-
 
 def build_teacher_absent_message(teacher_name, date_str):
     base = (
