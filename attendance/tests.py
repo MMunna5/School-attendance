@@ -8,6 +8,7 @@ import requests
 
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from .sms_utils import send_sms, append_school_name, build_absent_message, normalize_sms_number
+from .views import send_absent_sms
 
 
 class HealthCheckTests(TestCase):
@@ -145,6 +146,33 @@ class ModelAndAttendanceTests(TestCase):
         second_response = client.post(reverse('attendance_page'), post_data)
         self.assertEqual(second_response.status_code, 200)
         self.assertEqual(mock_send_sms.call_count, 1)
+
+    @patch('attendance.views.time.sleep')
+    @patch('attendance.views.send_sms')
+    def test_absent_sms_sends_to_every_recipient(self, mock_send_sms, mock_sleep):
+        mock_send_sms.return_value = (True, "Ok: SMS Sent Successfully")
+        students = [
+            Student.objects.create(
+                roll_no=str(index),
+                name=f"Student {index}",
+                class_name="Ten",
+                section="A",
+                parent_mobile=f"0180000000{index}",
+            )
+            for index in range(2, 5)
+        ]
+
+        sent_count, failed = send_absent_sms(
+            students,
+            build_absent_message,
+            "06-Sep-26",
+            lambda student: student.parent_mobile,
+        )
+
+        self.assertEqual(sent_count, 3)
+        self.assertEqual(failed, [])
+        self.assertEqual(mock_send_sms.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
 
     def test_previous_day_status_does_not_change_next_day_default_present(self):
         Attendance.objects.create(

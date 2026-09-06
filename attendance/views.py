@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count
-from concurrent.futures import ThreadPoolExecutor
+import time
 from django.conf import settings
 from .models import Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
@@ -25,25 +25,29 @@ TEACHER_EXCEL_HEADERS = ["Name", "Number", "Class"]
 
 
 def send_absent_sms(people, message_builder, date_str, number_getter, message_kwargs_getter=None):
-    """Send absence alerts one at a time to avoid provider rate-limit failures."""
+    """Send absence alerts sequentially with one retry to avoid rate-limit failures."""
     people_with_numbers = [person for person in people if number_getter(person)]
     people_without_numbers = [f"{person.name} (no phone)" for person in people if not number_getter(person)]
-
-    def deliver(person):
-        try:
-            message_kwargs = message_kwargs_getter(person) if message_kwargs_getter else {}
-            message = message_builder(person.name, date_str, **message_kwargs)
-            success, response = send_sms(number_getter(person), message)
-            return person.name if success else None
-        except Exception:
-            return None
 
     if not people_with_numbers:
         return 0, people_without_numbers
 
-    worker_count = min(2, len(people_with_numbers))
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        results = list(executor.map(deliver, people_with_numbers))
+    results = []
+    for index, person in enumerate(people_with_numbers):
+        success = False
+        try:
+            message_kwargs = message_kwargs_getter(person) if message_kwargs_getter else {}
+            message = message_builder(person.name, date_str, **message_kwargs)
+            for attempt in range(2):
+                success, _ = send_sms(number_getter(person), message)
+                if success or attempt == 1:
+                    break
+                time.sleep(1)
+        except Exception:
+            success = False
+        results.append(person.name if success else None)
+        if index < len(people_with_numbers) - 1:
+            time.sleep(1)
 
     sent_count = sum(1 for result in results if result)
     failed = people_without_numbers + [
