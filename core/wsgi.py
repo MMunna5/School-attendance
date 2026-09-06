@@ -8,9 +8,20 @@ https://docs.djangoproject.com/en/6.1/howto/deployment/wsgi/
 """
 
 import os
+import threading
 
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
 application = get_wsgi_application()
+
+
+def start_sms_worker():
+	from attendance.management.commands.process_sms_queue import Command
+
+	Command().handle()
+
+
+if os.environ.get('DEBUG', 'False').lower() not in ('true', '1', 'yes'):
+	threading.Thread(target=start_sms_worker, name='sms-queue-worker', daemon=True).start()
