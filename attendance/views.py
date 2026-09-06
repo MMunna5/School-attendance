@@ -282,50 +282,50 @@ def mark_attendance(request):
 
     if request.method == 'POST' and current_class and not already_marked:
         absent_students = []
-        with transaction.atomic():
-            post_class = request.POST.get('class', '').strip()
-            if post_class and post_class in class_choices and post_class != current_class:
-                current_class = post_class
-                students = load_students(current_class)
-                all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
 
-            already_marked = Attendance.objects.select_for_update().filter(
-                student__class_name=current_class, date=today
-            ).exists()
+        post_class = request.POST.get('class', '').strip()
+        if post_class and post_class in class_choices and post_class != current_class:
+            current_class = post_class
+            students = load_students(current_class)
+            all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
 
-            if not already_marked:
-                for student in students:
-                    status = request.POST.get(f'att_{student.id}', 'present')
-                    is_present = status == 'present'
+        # Simple check without select_for_update (avoids timeout/lock on Render free)
+        already_marked = Attendance.objects.filter(
+            student__class_name=current_class, date=today
+        ).exists()
 
-                    Attendance.objects.update_or_create(
-                        student=student,
-                        date=today,
-                        defaults={'is_present': is_present}
-                    )
+        if not already_marked:
+            for student in students:
+                status = request.POST.get(f'att_{student.id}', 'present')
+                is_present = status == 'present'
 
-                    if not is_present:
-                        absent_students.append(student)
+                Attendance.objects.update_or_create(
+                    student=student,
+                    date=today,
+                    defaults={'is_present': is_present}
+                )
 
-        attendance_count = Attendance.objects.filter(
-            student__class_name=current_class,
-            date=today,
-        ).count()
-        class_student_count = Student.objects.filter(class_name=current_class).count()
+                if not is_present:
+                    absent_students.append(student)
 
-        if not already_marked and class_student_count and attendance_count == class_student_count:
-            queued_messages = AbsenceSms.objects.bulk_create(
-                [AbsenceSms(student=student, date=today) for student in absent_students],
-                ignore_conflicts=True,
-            )
-            sms_queued_count = len(queued_messages)
+            attendance_count = Attendance.objects.filter(
+                student__class_name=current_class,
+                date=today,
+            ).count()
+            class_student_count = Student.objects.filter(class_name=current_class).count()
 
-            saved = True
-            already_marked = True
-        else:
-            saved = True
-            already_marked = True
-            sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
+            if class_student_count and attendance_count == class_student_count:
+                queued_messages = AbsenceSms.objects.bulk_create(
+                    [AbsenceSms(student=student, date=today) for student in absent_students],
+                    ignore_conflicts=True,
+                )
+                sms_queued_count = len(queued_messages)
+                saved = True
+                already_marked = True
+            else:
+                saved = True
+                already_marked = True
+                sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
 
     class_statuses = get_class_attendance_statuses(class_choices, today)
     attendance_map = {}
@@ -375,7 +375,6 @@ def mark_attendance(request):
         'absent_count': absent_count,
         'total_students': students.count() if hasattr(students, 'count') else len(students),
     })
-
 
 @login_required
 @user_passes_test(is_admin)
