@@ -22,6 +22,10 @@ services:
         sync: false
       - key: SMS_TOKEN
         sync: false
+      - key: SCHOOL_SHORT_NAME
+        value: "Shaheed Nur HM School"
+      - key: SCHOOL_FULL_NAME
+        value: "Shaheed Nur Hossain Memorial School"
       - key: DEFAULT_TEACHER_PASSWORD
         sync: false
 
@@ -43,3 +47,5 @@ services:
         sync: false
       - key: SCHOOL_SHORT_NAME
         value: "Shaheed Nur HM School"
+      - key: SCHOOL_FULL_NAME
+        value: "Shaheed Nur Hossain Memorial School"
