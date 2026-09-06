@@ -274,7 +274,13 @@ def mark_attendance(request):
                     if not is_present:
                         absent_students.append(student)
 
-        if not already_marked:
+        attendance_count = Attendance.objects.filter(
+            student__class_name=current_class,
+            date=today,
+        ).count()
+        class_student_count = Student.objects.filter(class_name=current_class).count()
+
+        if not already_marked and class_student_count and attendance_count == class_student_count:
             sms_sent_count, sms_failed = send_absent_sms(
                 absent_students,
                 build_absent_message,
@@ -290,6 +296,10 @@ def mark_attendance(request):
             already_marked = True
             if sms_failed:
                 sms_warning = f"SMS could not be sent to: {', '.join(sms_failed)}"
+        else:
+            saved = True
+            already_marked = True
+            sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
 
     attendance_map = {}
     if current_class:
