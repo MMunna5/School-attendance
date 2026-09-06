@@ -51,7 +51,7 @@
       {{ today|date:"d F Y" }}{% if current_class %} · Class {{ current_class }}{% endif %}
     </div>
   </div>
-  {% if already_marked %}
+  {% if already_marked or is_admin_user %}
   <div class="flex gap-3">
     <div class="bg-green-50 text-present font-bold px-4 py-2 rounded-xl text-center">
       <div class="text-xl">{{ present_count }}</div>
@@ -76,7 +76,7 @@
 </div>
 {% endif %}
 
-{% if already_marked and not saved %}
+{% if already_marked and not is_admin_user and not saved %}
 <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 mb-5 text-sm">
   Attendance for this class has already been taken today. It can only be taken once per day.
 </div>
@@ -135,10 +135,14 @@
     {% for item in student_rows %}
     <div
       class="student-attendance-row bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
+
+      <!-- Roll number -->
       <div
         class="w-9 h-9 rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
         {{ item.student.roll_no }}
       </div>
+
+      <!-- Student info -->
       <div class="flex-1 min-w-[calc(100%-3rem)] sm:min-w-0">
         <div class="font-semibold text-forest-deep break-words text-sm">{{ item.student.name }}</div>
         {% if item.student.parent_mobile %}
@@ -147,8 +151,10 @@
         <div class="text-[11px] text-absent">No phone</div>
         {% endif %}
       </div>
+
+      <!-- Attendance buttons -->
       <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
-        {% if already_marked %}
+        {% if already_marked and not is_admin_user %}
         {% if item.is_present %}
         <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
         {% else %}
@@ -156,16 +162,18 @@
         {% endif %}
         {% else %}
         <label class="cursor-pointer">
-          <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" checked>
+          <input type="radio" name="att_{{ item.student.id }}" value="present" class="peer sr-only" {% if
+            item.present_checked %}checked{% endif %}>
           <span
-            class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-present text-white border border-present transition">
+            class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">
             Present
           </span>
         </label>
         <label class="cursor-pointer">
-          <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only">
+          <input type="radio" name="att_{{ item.student.id }}" value="absent" class="peer sr-only" {% if
+            item.absent_checked %}checked{% endif %}>
           <span
-            class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white text-ink-soft border border-gray-200 transition">
+            class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">
             Absent
           </span>
         </label>
@@ -175,7 +183,7 @@
     {% endfor %}
   </div>
 
-  {% if not already_marked %}
+  {% if not already_marked or is_admin_user %}
   <div class="sticky bottom-4">
     <button type="submit"
       class="w-full bg-forest text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-forest-deep transition text-base">
@@ -189,6 +197,7 @@
   function syncAttendanceButtons(input) {
     const row = input.closest('.student-attendance-row');
     if (!row) return;
+
     const presentInput = row.querySelector('input[value="present"]');
     const presentButton = row.querySelector('.present-option');
     const absentButton = row.querySelector('.absent-option');
@@ -208,13 +217,17 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.student-attendance-row input[type="radio"]').forEach(function (input) {
-      input.addEventListener('change', function () { syncAttendanceButtons(input); });
-      if (input.checked) syncAttendanceButtons(input);
+      input.addEventListener('change', function () {
+        syncAttendanceButtons(input);
+      });
+      if (input.checked) {
+        syncAttendanceButtons(input);
+      }
     });
   });
 
   function confirmSave() {
-    return confirm("Save attendance and send SMS? This can only be done once per day for this class.");
+    return confirm("Save attendance and send SMS?");
   }
 </script>
 

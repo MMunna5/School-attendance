@@ -280,31 +280,30 @@ def mark_attendance(request):
     sms_queued_count = 0
     sms_warning = None
 
-    if request.method == 'POST' and current_class and not already_marked:
-        absent_students = []
-
+    if request.method == 'POST' and current_class:
         post_class = request.POST.get('class', '').strip()
         if post_class and post_class in class_choices and post_class != current_class:
             current_class = post_class
             students = load_students(current_class)
             all_classes = [{'name': c, 'is_selected': (c == current_class)} for c in class_choices]
+            already_marked = Attendance.objects.filter(
+                student__class_name=current_class, date=today
+            ).exists()
 
-        # Simple check (no select_for_update)
-        already_marked = Attendance.objects.filter(
-            student__class_name=current_class, date=today
-        ).exists()
+        # Teacher: only once. Admin: always can change (superpower)
+        can_submit = is_admin_user or not already_marked
 
-        if not already_marked:
-            to_create = []
-            to_update = []
-
-            # Existing attendance for this class + date
+        if can_submit:
+            absent_students = []
             existing = {
                 a.student_id: a
                 for a in Attendance.objects.filter(
                     student__class_name=current_class, date=today
                 )
             }
+
+            to_create = []
+            to_update = []
 
             for student in students:
                 status = request.POST.get(f'att_{student.id}', 'present')
@@ -325,7 +324,6 @@ def mark_attendance(request):
                 if not is_present:
                     absent_students.append(student)
 
-            # Bulk operations (fast, no timeout)
             if to_create:
                 Attendance.objects.bulk_create(to_create, ignore_conflicts=True)
             if to_update:
@@ -338,17 +336,28 @@ def mark_attendance(request):
             class_student_count = Student.objects.filter(class_name=current_class).count()
 
             if class_student_count and attendance_count == class_student_count:
-                queued_messages = AbsenceSms.objects.bulk_create(
-                    [AbsenceSms(student=student, date=today) for student in absent_students],
-                    ignore_conflicts=True,
+                existing_sms = set(
+                    AbsenceSms.objects.filter(
+                        student__in=absent_students, date=today
+                    ).values_list('student_id', flat=True)
                 )
-                sms_queued_count = len(queued_messages)
+                new_sms = [
+                    AbsenceSms(student=s, date=today)
+                    for s in absent_students if s.id not in existing_sms
+                ]
+                if new_sms:
+                    queued = AbsenceSms.objects.bulk_create(new_sms, ignore_conflicts=True)
+                    sms_queued_count = len(queued)
+
                 saved = True
                 already_marked = True
             else:
                 saved = True
                 already_marked = True
                 sms_warning = "Attendance was saved, but SMS was not sent because the class attendance is incomplete."
+
+    # For template: teacher sees locked if already marked, admin always sees editable
+    show_as_locked = already_marked and not is_admin_user
 
     class_statuses = get_class_attendance_statuses(class_choices, today)
     attendance_map = {}
@@ -393,7 +402,7 @@ def mark_attendance(request):
         'all_classes': all_classes,
         'class_statuses': class_statuses,
         'current_class': current_class,
-        'already_marked': already_marked,
+        'already_marked': show_as_locked,   # teacher sees locked, admin sees editable
         'present_count': present_count,
         'absent_count': absent_count,
         'total_students': students.count() if hasattr(students, 'count') else len(students),
