@@ -54,15 +54,15 @@
   {% if already_marked or is_admin_user %}
   <div class="flex gap-3">
     <div class="bg-green-50 text-present font-bold px-4 py-2 rounded-xl text-center">
-      <div class="text-xl">{{ present_count }}</div>
+      <div class="text-xl">{{ present_count|default:0 }}</div>
       <div class="text-xs font-semibold">Present</div>
     </div>
     <div class="bg-red-50 text-absent font-bold px-4 py-2 rounded-xl text-center">
-      <div class="text-xl">{{ absent_count }}</div>
+      <div class="text-xl">{{ absent_count|default:0 }}</div>
       <div class="text-xs font-semibold">Absent</div>
     </div>
     <div class="bg-gray-50 text-ink-soft font-bold px-4 py-2 rounded-xl text-center">
-      <div class="text-xl">{{ total_students }}</div>
+      <div class="text-xl">{{ total_students|default:0 }}</div>
       <div class="text-xs font-semibold">Total</div>
     </div>
   </div>
