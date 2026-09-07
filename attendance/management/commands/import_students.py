@@ -3,21 +3,17 @@ import openpyxl
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from attendance.models import Student
+from attendance.sms_utils import clean_phone_for_storage
 
 
 class Command(BaseCommand):
     help = "Import students from all Excel files in attendance/import_data/"
 
     def fix_phone(self, phone):
-        if not phone:
-            return ""
-        phone = str(phone).strip()
-        phone = phone.replace(" ", "").replace("-", "")
-        if phone.endswith(".0"):
-            phone = phone[:-2]
-        if phone and not phone.startswith("0"):
-            phone = "0" + phone
-        return phone
+        # Delegates to the same normalization used by the web upload and
+        # manual add/edit forms, so every import path produces phone
+        # numbers in one consistent, SMS-ready format.
+        return clean_phone_for_storage(phone)
 
     def handle(self, *args, **kwargs):
         folder = os.path.join(settings.BASE_DIR, "attendance", "import_data")

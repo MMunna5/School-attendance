@@ -1,7 +1,11 @@
 import json
+import logging
+import re
 
 import requests
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def append_school_name(base_message):
@@ -36,15 +40,61 @@ def build_teacher_absent_message(teacher_name, date_str):
     return append_school_name(base)
 
 
+def clean_phone_for_storage(raw):
+    """
+    Normalize any human/Excel-entered phone number into the app's canonical
+    STORAGE format: an 11-digit Bangladeshi local number starting with 0
+    (e.g. "01712345678"). Used everywhere a phone number is saved
+    (manual add/edit forms, bulk Excel upload, CLI import) so that
+    every number in the database is in one consistent shape before it
+    ever reaches the SMS layer.
+
+    Returns "" if the input is empty, or the best-effort cleaned string
+    if it doesn't confidently match a BD mobile pattern (so the value is
+    never silently dropped -- but see normalize_sms_number() for the
+    strict check used right before actually sending an SMS).
+    """
+    if raw is None:
+        return ""
+    s = str(raw).strip()
+    if not s:
+        return ""
+
+    # Excel sometimes turns "01712345678" into the float 1712345678.0
+    if s.endswith(".0"):
+        s = s[:-2]
+
+    # Strip everything except digits and a leading +
+    s = re.sub(r'[^\d+]', '', s)
+
+    # Drop a leading "+" or international "00" prefix so we can inspect
+    # the raw digit string uniformly.
+    if s.startswith('+'):
+        s = s[1:]
+    if s.startswith('00'):
+        s = s[2:]
+
+    if s.startswith('880') and len(s) == 13:
+        # 8801712345678 -> 01712345678
+        s = '0' + s[3:]
+    elif s.isdigit() and len(s) == 10 and not s.startswith('0'):
+        # 1712345678 -> 01712345678
+        s = '0' + s
+
+    return s
+
+
 def normalize_sms_number(number):
-    normalized = str(number or '').strip().replace(' ', '').replace('-', '')
-    if normalized.startswith('00'):
-        normalized = f"+{normalized[2:]}"
-    elif normalized.startswith('880'):
-        normalized = f"+{normalized}"
-    elif normalized.startswith('01'):
-        normalized = f"+880{normalized[1:]}"
-    return normalized
+    """
+    Convert a stored (or raw) phone number into the exact format the SMS
+    gateway needs: "+8801XXXXXXXXX". Returns None if the number can't be
+    confidently normalized, so callers can skip/flag it instead of
+    silently sending to a malformed destination.
+    """
+    cleaned = clean_phone_for_storage(number)
+    if len(cleaned) == 11 and cleaned.startswith('01') and cleaned.isdigit():
+        return f"+880{cleaned[1:]}"
+    return None
 
 
 def send_sms(number, message):
@@ -52,10 +102,15 @@ def send_sms(number, message):
     if not token:
         return False, "SMS token is not configured in environment variables."
 
+    normalized_number = normalize_sms_number(number)
+    if not normalized_number:
+        logger.warning("SMS not sent: could not normalize phone number %r", number)
+        return False, f"Invalid/unrecognized phone number format: {number!r}"
+
     url = "https://api.bdbulksms.net/api.php"
     params = {
         "token": token,
-        "to": normalize_sms_number(number),
+        "to": normalized_number,
         "message": message,
         "json": "",
     }
@@ -76,7 +131,15 @@ def send_sms(number, message):
             is_success = response.status_code == 200 and (
                 "ok:" in response_lower or "success" in response_lower
             )
+
+        # Always log the raw provider response (success or failure) so it
+        # can be cross-checked against the bdbulksms dashboard later.
+        logger.info(
+            "SMS to %s -> success=%s status=%s response=%s",
+            normalized_number, is_success, response.status_code, response_text[:500],
+        )
         return is_success, response.text
-    except requests.RequestException:
+    except requests.RequestException as exc:
+        logger.error("SMS delivery network error for %s: %s", normalized_number, exc)
         # Avoid exposing token or sensitive parameters in error messages
         return False, "SMS delivery failed due to a network connection error."

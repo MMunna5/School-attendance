@@ -1,0 +1,125 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}SMS Status - Attendance Register{% endblock %}
+{% block eyebrow %}Admin{% endblock %}
+{% block header_title %}SMS Delivery Status{% endblock %}
+{% block header_links %}
+<a href="{% url 'dashboard' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+    </svg>
+    Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="text-sm text-ink-soft mb-5">
+    Absence SMS that failed to send (with the provider's error) or are still waiting in the queue.
+    Showing up to 200 of each. "Retry" puts a failed message back in the queue for the background worker
+    to pick up again.
+</div>
+
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS — Failed
+    ({{ student_failed|length }})</div>
+{% if student_failed %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
+    {% for m in student_failed %}
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm first:border-t-0">
+        <div class="sm:col-span-3 font-semibold text-forest-deep break-words">
+            {{ m.student.name }}
+            <div class="text-[11px] font-normal text-ink-soft">Roll {{ m.student.roll_no }} · Class {{ m.student.class_name }}{{ m.student.section }}</div>
+        </div>
+        <div class="sm:col-span-2 text-ink-soft">
+            {% if m.student.parent_mobile %}{{ m.student.parent_mobile }}{% else %}<span class="text-absent">No phone</span>{% endif %}
+        </div>
+        <div class="sm:col-span-2 text-ink-soft">{{ m.date }}</div>
+        <div class="sm:col-span-3 text-[11px] text-absent break-words">{{ m.last_error|default:"—" }} (attempt {{ m.attempts }})</div>
+        <div class="sm:col-span-2 text-right">
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="retry">
+                <input type="hidden" name="kind" value="student">
+                <input type="hidden" name="id" value="{{ m.id }}">
+                <button type="submit" class="bg-gold text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition">Retry</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">No failed student SMS. 🎉</div>
+{% endif %}
+
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS — Pending
+    ({{ student_pending|length }})</div>
+{% if student_pending %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
+    {% for m in student_pending %}
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm first:border-t-0">
+        <div class="sm:col-span-4 font-semibold text-forest-deep break-words">
+            {{ m.student.name }}
+            <div class="text-[11px] font-normal text-ink-soft">Roll {{ m.student.roll_no }} · Class {{ m.student.class_name }}{{ m.student.section }}</div>
+        </div>
+        <div class="sm:col-span-3 text-ink-soft">
+            {% if m.student.parent_mobile %}{{ m.student.parent_mobile }}{% else %}<span class="text-absent">No phone</span>{% endif %}
+        </div>
+        <div class="sm:col-span-2 text-ink-soft">{{ m.date }}</div>
+        <div class="sm:col-span-3 text-[11px] text-ink-soft">Queued, waiting for worker</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">Queue is empty.</div>
+{% endif %}
+
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS — Failed
+    ({{ teacher_failed|length }})</div>
+{% if teacher_failed %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
+    {% for m in teacher_failed %}
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm first:border-t-0">
+        <div class="sm:col-span-3 font-semibold text-forest-deep break-words">{{ m.teacher.name }}</div>
+        <div class="sm:col-span-2 text-ink-soft">
+            {% if m.teacher.mobile %}{{ m.teacher.mobile }}{% else %}<span class="text-absent">No phone</span>{% endif %}
+        </div>
+        <div class="sm:col-span-2 text-ink-soft">{{ m.date }}</div>
+        <div class="sm:col-span-3 text-[11px] text-absent break-words">{{ m.last_error|default:"—" }} (attempt {{ m.attempts }})</div>
+        <div class="sm:col-span-2 text-right">
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="retry">
+                <input type="hidden" name="kind" value="teacher">
+                <input type="hidden" name="id" value="{{ m.id }}">
+                <button type="submit" class="bg-gold text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition">Retry</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">No failed teacher SMS. 🎉</div>
+{% endif %}
+
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS — Pending
+    ({{ teacher_pending|length }})</div>
+{% if teacher_pending %}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+    {% for m in teacher_pending %}
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm first:border-t-0">
+        <div class="sm:col-span-4 font-semibold text-forest-deep break-words">{{ m.teacher.name }}</div>
+        <div class="sm:col-span-3 text-ink-soft">
+            {% if m.teacher.mobile %}{{ m.teacher.mobile }}{% else %}<span class="text-absent">No phone</span>{% endif %}
+        </div>
+        <div class="sm:col-span-2 text-ink-soft">{{ m.date }}</div>
+        <div class="sm:col-span-3 text-[11px] text-ink-soft">Queued, waiting for worker</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl">Queue is empty.</div>
+{% endif %}
+
+{% endblock %}

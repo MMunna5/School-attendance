@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth import update_session_auth_hash
@@ -12,9 +14,28 @@ import time
 from django.conf import settings
 from .models import AbsenceSms, TeacherAbsenceSms, Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
-from .sms_utils import build_absent_message, build_teacher_absent_message, send_sms
+from .sms_utils import (
+    build_absent_message,
+    build_teacher_absent_message,
+    send_sms,
+    clean_phone_for_storage,
+)
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
+logger = logging.getLogger(__name__)
+
+
+def local_today():
+    """
+    The one correct way to get 'today' in this app.
+    timezone.now().date() returns the UTC calendar date, which is WRONG
+    for roughly 00:00-05:59 Bangladesh time (UTC+6) -- during that window
+    the UTC date is still the previous day. Always go through
+    timezone.localtime() first so attendance/date logic uses the
+    school's actual local date.
+    """
+    return timezone.localtime(timezone.now()).date()
 
 
 # Expected Excel column headers (in order) for the two bulk-upload forms.
@@ -130,7 +151,7 @@ def build_choice_options_multi(values, selected_values):
 def get_report_date(value):
     """Return a valid report date, falling back to today for malformed input."""
     parsed = parse_date((value or '').strip())
-    return parsed or timezone.now().date()
+    return parsed or local_today()
 
 
 def get_class_attendance_statuses(class_names, date):
@@ -169,7 +190,7 @@ def dashboard(request):
     total_students = 0
     present_count = 0
     absent_count = 0
-    today = timezone.now().date()
+    today = local_today()
     teacher_classes = []
 
     if teacher:
@@ -239,7 +260,7 @@ def mark_attendance(request):
         return render(request, 'attendance/mark_attendance.html', {
             'error': 'Your account is not linked to any teacher. Ask admin to link it.',
             'is_admin_user': False,
-            'today': timezone.now().date(),
+            'today': local_today(),
         })
 
     if is_admin_user:
@@ -250,7 +271,7 @@ def mark_attendance(request):
             return render(request, 'attendance/mark_attendance.html', {
                 'error': 'No class has been assigned to you yet. Please ask the admin to assign one.',
                 'is_admin_user': False,
-                'today': timezone.now().date(),
+                'today': local_today(),
             })
 
     show_class_selector = is_admin_user or len(class_choices) > 1
@@ -271,7 +292,7 @@ def mark_attendance(request):
 
     students = load_students(current_class) if current_class else Student.objects.none()
 
-    today = timezone.now().date()
+    today = local_today()
     already_marked = False
     if current_class:
         already_marked = Attendance.objects.filter(
@@ -296,46 +317,66 @@ def mark_attendance(request):
         can_submit = is_admin_user or not already_marked
 
         if can_submit:
-            absent_students = []
-            existing = {
-                a.student_id: a
-                for a in Attendance.objects.filter(
-                    student__class_name=current_class, date=today
-                )
-            }
+            # Snapshot the roster once so we never iterate a queryset that
+            # could be re-evaluated (and change) mid-request.
+            students = list(students)
+            expected_total = len(students)
 
-            to_create = []
-            to_update = []
+            with transaction.atomic():
+                # Lock any existing rows for this class/day so two
+                # concurrent submits (e.g. a teacher and an admin, or a
+                # double-click) can't race each other into a partial save.
+                existing = {
+                    a.student_id: a
+                    for a in Attendance.objects.select_for_update().filter(
+                        student__class_name=current_class, date=today
+                    )
+                }
 
-            for student in students:
-                status = request.POST.get(f'att_{student.id}', 'present')
-                is_present = status == 'present'
+                absent_students = []
+                to_create = []
+                to_update = []
 
-                if student.id in existing:
-                    att = existing[student.id]
-                    if att.is_present != is_present:
-                        att.is_present = is_present
-                        to_update.append(att)
-                else:
-                    to_create.append(Attendance(
-                        student=student,
-                        date=today,
-                        is_present=is_present
-                    ))
+                for student in students:
+                    status = request.POST.get(f'att_{student.id}', 'present')
+                    is_present = status == 'present'
 
-                if not is_present:
-                    absent_students.append(student)
+                    if student.id in existing:
+                        att = existing[student.id]
+                        if att.is_present != is_present:
+                            att.is_present = is_present
+                            to_update.append(att)
+                    else:
+                        to_create.append(Attendance(
+                            student=student,
+                            date=today,
+                            is_present=is_present
+                        ))
 
-            if to_create:
-                Attendance.objects.bulk_create(to_create, ignore_conflicts=True)
-            if to_update:
-                Attendance.objects.bulk_update(to_update, ['is_present'])
+                    if not is_present:
+                        absent_students.append(student)
 
-            attendance_count = Attendance.objects.filter(
-                student__class_name=current_class,
-                date=today,
-            ).count()
+                if to_create:
+                    Attendance.objects.bulk_create(to_create, ignore_conflicts=True)
+                if to_update:
+                    Attendance.objects.bulk_update(to_update, ['is_present'])
+
+                attendance_count = Attendance.objects.filter(
+                    student__class_name=current_class,
+                    date=today,
+                ).count()
+
             class_student_count = Student.objects.filter(class_name=current_class).count()
+
+            if attendance_count != expected_total:
+                # This should never happen -- if it does, we want it in the
+                # logs immediately instead of silently showing "not marked"
+                # later in Attendance History.
+                logger.error(
+                    "Attendance save mismatch for class=%s date=%s: "
+                    "expected %s students, %s attendance rows exist after save.",
+                    current_class, today, expected_total, attendance_count,
+                )
 
             if class_student_count and attendance_count == class_student_count:
                 existing_sms = set(
@@ -407,7 +448,7 @@ def mark_attendance(request):
         'already_marked': show_as_locked,
         'present_count': present_count,
         'absent_count': absent_count,
-        'total_students': students.count() if hasattr(students, 'count') else len(students),
+        'total_students': len(students) if isinstance(students, list) else students.count(),
     })
 
 @login_required
@@ -450,7 +491,7 @@ def student_add(request):
                 name=request.POST.get('name', '').strip(),
                 class_name=request.POST.get('class_name', '').strip(),
                 section=request.POST.get('section', '').strip(),
-                parent_mobile=request.POST.get('parent_mobile', '').strip(),
+                parent_mobile=clean_phone_for_storage(request.POST.get('parent_mobile', '')),
             )
             return redirect('student_list')
         except IntegrityError:
@@ -475,7 +516,7 @@ def student_edit(request, student_id):
             student.name = request.POST.get('name', '').strip()
             student.class_name = request.POST.get('class_name', '').strip()
             student.section = request.POST.get('section', '').strip()
-            student.parent_mobile = request.POST.get('parent_mobile', '').strip()
+            student.parent_mobile = clean_phone_for_storage(request.POST.get('parent_mobile', ''))
             student.save()
             return redirect('student_list')
         except IntegrityError:
@@ -597,11 +638,7 @@ def student_upload(request):
                 if section_str.endswith(".0"):
                     section_str = section_str[:-2]
 
-                phone_str = str(phone_raw).strip()
-                if phone_str.endswith(".0"):
-                    phone_str = phone_str[:-2]
-                if phone_str and not phone_str.startswith("0") and phone_str.isdigit():
-                    phone_str = "0" + phone_str
+                phone_str = clean_phone_for_storage(phone_raw)
 
                 if not roll_str or not name_str or not class_str:
                     skipped += 1
@@ -706,7 +743,7 @@ def teacher_add(request):
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         name = request.POST.get('name', '').strip()
-        mobile = request.POST.get('mobile', '').strip()
+        mobile = clean_phone_for_storage(request.POST.get('mobile', ''))
         employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
         if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
             employment_type = Teacher.EMPLOYMENT_FULL
@@ -742,7 +779,7 @@ def teacher_edit(request, teacher_id):
     teacher = get_object_or_404(Teacher, id=teacher_id)
     if request.method == 'POST':
         teacher.name = request.POST.get('name', '').strip()
-        teacher.mobile = request.POST.get('mobile', '').strip()
+        teacher.mobile = clean_phone_for_storage(request.POST.get('mobile', ''))
         employment_type = request.POST.get('employment_type', Teacher.EMPLOYMENT_FULL).strip()
         if employment_type not in (Teacher.EMPLOYMENT_FULL, Teacher.EMPLOYMENT_PART):
             employment_type = Teacher.EMPLOYMENT_FULL
@@ -840,11 +877,7 @@ def teacher_upload(request):
                 assigned_class = row[2] if len(row) > 2 else ""
 
                 name_str = str(name).strip() if name is not None else ""
-                clean_mobile = str(mobile).strip() if mobile else ""
-                if clean_mobile.endswith('.0'):
-                    clean_mobile = clean_mobile[:-2]
-                if clean_mobile and not clean_mobile.startswith("0") and clean_mobile.isdigit():
-                    clean_mobile = "0" + clean_mobile
+                clean_mobile = clean_phone_for_storage(mobile)
 
                 if not name_str or not clean_mobile:
                     skipped += 1
@@ -941,7 +974,7 @@ def teacher_delete(request, teacher_id):
 @login_required
 @user_passes_test(is_admin)
 def mark_teacher_attendance(request):
-    today = timezone.now().date()
+    today = local_today()
     saved = False
     saved_type = None
     sms_queued_count = 0
@@ -1299,3 +1332,53 @@ def correct_attendance(request, student_id):
         send_sms(student.parent_mobile, message)
 
     return redirect(redirect_url)
+
+
+@login_required
+@user_passes_test(is_admin)
+def sms_status(request):
+    """
+    Admin-only visibility into the SMS queue: which absence alerts are
+    still pending, and which ones failed (with the provider's error, so
+    a bad phone number or a provider rejection is visible in the app
+    instead of only in the Django admin / database).
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        kind = request.POST.get('kind')
+        message_id = request.POST.get('id')
+        model = AbsenceSms if kind == 'student' else TeacherAbsenceSms
+        if action == 'retry':
+            model.objects.filter(pk=message_id).update(
+                status=model.STATUS_PENDING,
+                next_attempt_at=None,
+            )
+        return redirect('sms_status')
+
+    student_failed = (
+        AbsenceSms.objects.select_related('student')
+        .filter(status=AbsenceSms.STATUS_FAILED)
+        .order_by('-created_at')[:200]
+    )
+    student_pending = (
+        AbsenceSms.objects.select_related('student')
+        .filter(status=AbsenceSms.STATUS_PENDING)
+        .order_by('created_at')[:200]
+    )
+    teacher_failed = (
+        TeacherAbsenceSms.objects.select_related('teacher')
+        .filter(status=TeacherAbsenceSms.STATUS_FAILED)
+        .order_by('-created_at')[:200]
+    )
+    teacher_pending = (
+        TeacherAbsenceSms.objects.select_related('teacher')
+        .filter(status=TeacherAbsenceSms.STATUS_PENDING)
+        .order_by('created_at')[:200]
+    )
+
+    return render(request, 'attendance/sms_status.html', {
+        'student_failed': student_failed,
+        'student_pending': student_pending,
+        'teacher_failed': teacher_failed,
+        'teacher_pending': teacher_pending,
+    })

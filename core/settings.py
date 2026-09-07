@@ -167,6 +167,34 @@ SCHOOL_FULL_NAME = os.environ.get(
 # Configurable initial password for bulk-uploaded teachers
 DEFAULT_TEACHER_PASSWORD = os.environ.get("DEFAULT_TEACHER_PASSWORD", "12345")
 
+# Safety margin: a very large combined class (all sections under one
+# class_name, since attendance is taken per class_name not per section)
+# could in theory exceed Django's default 1000-field POST limit. Raise
+# it generously so a big school never hits a silent 400 on the
+# attendance form.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+# Make sure our own logger.info/warning/error calls (SMS delivery
+# tracing, attendance save-mismatch alerts) actually reach the
+# console/Render logs instead of being dropped by Python's default
+# WARNING-only last-resort handler.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "attendance": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
 # Production Security Hardening
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() in ("true", "1", "yes")
