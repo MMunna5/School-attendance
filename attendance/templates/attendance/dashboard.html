@@ -74,6 +74,12 @@
     </a>
     {% endfor %}
 </div>
+
+<a href="{% url 'class_history' %}"
+    class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition mb-6">
+    <h2 class="text-lg font-bold text-forest-deep">Class Attendance History</h2>
+    <p class="text-sm text-ink-soft mt-1">Check by date, full month, or a single student's absent days</p>
+</a>
 {% else %}
 <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 mb-6 text-sm">
     No class has been assigned to you yet. Please contact the admin.
@@ -117,7 +123,7 @@
     <a href="{% url 'attendance_history' %}"
         class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
         <h2 class="text-lg font-bold text-forest-deep">Student Attendance History</h2>
-        <p class="text-sm text-ink-soft mt-1">Check past records by class & date</p>
+        <p class="text-sm text-ink-soft mt-1">By date (with correction), or full month per class</p>
     </a>
 
     <a href="{% url 'teacher_list' %}"

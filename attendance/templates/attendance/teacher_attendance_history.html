@@ -41,7 +41,8 @@
         <div class="col-span-4 text-center">Attendance</div>
     </div>
     {% for r in records %}
-    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm">
+    <a href="{% url 'teacher_history_detail' r.teacher.id %}?month={{ month_str }}"
+        class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm hover:bg-forest/5 transition">
         <div class="sm:col-span-1 font-mono text-ink-soft">ID: {{ r.teacher.id }}</div>
         <div class="sm:col-span-4 font-semibold text-forest-deep break-words">
             {{ r.teacher.name }}
@@ -54,11 +55,12 @@
         <div class="sm:col-span-3 text-ink-soft break-words">
             {% if r.teacher.mobile %}{{ r.teacher.mobile }}{% else %}<span class="text-absent">—</span>{% endif %}
         </div>
-        <div class="sm:col-span-4 flex gap-2 justify-start sm:justify-center flex-wrap text-sm">
+        <div class="sm:col-span-3 flex gap-2 justify-start sm:justify-center flex-wrap text-sm">
             <span class="bg-green-50 text-present font-bold px-3 py-1 rounded-full">{{ r.present }} Present</span>
             <span class="bg-red-50 text-absent font-bold px-3 py-1 rounded-full">{{ r.absent }} Absent</span>
         </div>
-    </div>
+        <div class="sm:col-span-1 text-right text-forest text-xs font-bold">Details →</div>
+    </a>
     {% endfor %}
 </div>
 {% else %}

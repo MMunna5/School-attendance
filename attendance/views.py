@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -1077,13 +1078,7 @@ def mark_teacher_attendance(request):
 @login_required
 @user_passes_test(is_admin)
 def teacher_attendance_history(request):
-    month_str = request.GET.get('month', '') or timezone.now().strftime('%Y-%m')
-    try:
-        year, month = map(int, month_str.split('-'))
-    except ValueError:
-        now = timezone.now()
-        year, month = now.year, now.month
-        month_str = f"{year:04d}-{month:02d}"
+    year, month, month_str = _month_bounds(request.GET.get('month'))
 
     teachers = Teacher.objects.all().order_by('id')
     records = []
@@ -1101,31 +1096,68 @@ def teacher_attendance_history(request):
 
 @login_required
 @user_passes_test(is_admin)
-def export_teacher_attendance(request):
-    month_str = request.GET.get('month', '') or timezone.now().strftime('%Y-%m')
-    try:
-        year, month = map(int, month_str.split('-'))
-    except ValueError:
-        now = timezone.now()
-        year, month = now.year, now.month
-        month_str = f"{year:04d}-{month:02d}"
+def teacher_history_detail(request, teacher_id):
+    """Admin-only: one teacher's exact present/absent dates for a month."""
+    teacher = get_object_or_404(Teacher, pk=teacher_id)
+    year, month, month_str = _month_bounds(request.GET.get('month'))
 
-    teachers = Teacher.objects.all().order_by('id')
+    records = list(
+        TeacherAttendance.objects.filter(teacher=teacher, date__year=year, date__month=month)
+        .order_by('date')
+    )
+    absent_dates = [r.date for r in records if not r.is_present]
+    present_dates = [r.date for r in records if r.is_present]
+
+    first_of_month = datetime.date(year, month, 1)
+    prev_month = (first_of_month - datetime.timedelta(days=1)).strftime('%Y-%m')
+    next_month = f"{year + 1:04d}-01" if month == 12 else f"{year:04d}-{month + 1:02d}"
+
+    return render(request, 'attendance/teacher_history_detail.html', {
+        'teacher': teacher,
+        'month_str': month_str,
+        'prev_month': prev_month,
+        'next_month': next_month,
+        'present_dates': present_dates,
+        'absent_dates': absent_dates,
+        'present_count': len(present_dates),
+        'absent_count': len(absent_dates),
+        'total_marked': len(records),
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def export_teacher_attendance(request):
+    """Date-wise attendance register for all teachers: one column per date
+    that has any recorded staff attendance that month, P/A per cell, plus
+    Present/Absent totals -- same format as the student month export."""
+    year, month, month_str = _month_bounds(request.GET.get('month'))
+
+    teachers = list(Teacher.objects.all().order_by('id'))
+    dates = sorted(set(
+        TeacherAttendance.objects.filter(
+            date__year=year, date__month=month
+        ).values_list('date', flat=True)
+    ))
+    attendance_map = {
+        (a.teacher_id, a.date): a.is_present
+        for a in TeacherAttendance.objects.filter(date__year=year, date__month=month)
+    }
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Teacher Attendance {month_str}"
+    ws.title = f"Teacher Attendance {month_str}"[:31]
 
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="1E3D32", end_color="1E3D32", fill_type="solid")
+    present_fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+    absent_fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
     thin = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin'),
     )
 
-    headers = ["ID", "Name", "Mobile", "Present", "Absent"]
+    headers = ["ID", "Name", "Mobile"] + [d.strftime("%d %b") for d in dates] + ["Present", "Absent"]
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.font = header_font
@@ -1134,27 +1166,45 @@ def export_teacher_attendance(request):
         cell.border = thin
 
     for row_num, teacher in enumerate(teachers, 2):
-        qs = TeacherAttendance.objects.filter(teacher=teacher, date__year=year, date__month=month)
-        present = qs.filter(is_present=True).count()
-        absent = qs.filter(is_present=False).count()
+        present_count = 0
+        absent_count = 0
 
-        values = [
-            teacher.id,
-            teacher.name,
-            teacher.mobile or "",
-            present,
-            absent,
-        ]
-        for col, val in enumerate(values, 1):
-            cell = ws.cell(row=row_num, column=col, value=val)
+        ws.cell(row=row_num, column=1, value=teacher.id).border = thin
+        name_cell = ws.cell(row=row_num, column=2, value=teacher.name)
+        name_cell.border = thin
+        name_cell.alignment = Alignment(horizontal="left")
+        ws.cell(row=row_num, column=3, value=teacher.mobile or "").border = thin
+
+        col = 4
+        for d in dates:
+            status_bool = attendance_map.get((teacher.id, d))
+            if status_bool is True:
+                text, fill = "P", present_fill
+                present_count += 1
+            elif status_bool is False:
+                text, fill = "A", absent_fill
+                absent_count += 1
+            else:
+                text, fill = "-", None
+
+            cell = ws.cell(row=row_num, column=col, value=text)
             cell.border = thin
-            cell.alignment = Alignment(horizontal="center" if col != 2 else "left")
+            cell.alignment = Alignment(horizontal="center")
+            if fill:
+                cell.fill = fill
+            col += 1
+
+        ws.cell(row=row_num, column=col, value=present_count).border = thin
+        ws.cell(row=row_num, column=col + 1, value=absent_count).border = thin
 
     ws.column_dimensions['A'].width = 8
     ws.column_dimensions['B'].width = 28
     ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 12
-    ws.column_dimensions['E'].width = 12
+    for i in range(len(dates)):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(4 + i)].width = 9
+    ws.column_dimensions[openpyxl.utils.get_column_letter(4 + len(dates))].width = 10
+    ws.column_dimensions[openpyxl.utils.get_column_letter(5 + len(dates))].width = 10
+    ws.freeze_panes = "D2"
 
     filename = f"Teacher_Attendance_{month_str}.xlsx"
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -1170,11 +1220,44 @@ def attendance_history(request):
     class_filter = request.GET.get('class', '').strip()
     all_classes_selected = class_filter in ('__all__', 'all')
     roll_filter = request.GET.get('roll', '').strip()
-    date_filter = get_report_date(request.GET.get('date')).isoformat()
+    view_mode = 'month' if request.GET.get('view') == 'month' else 'day'
 
     all_classes = [{'name': c, 'is_selected': (str(c) == class_filter)} for c in class_names]
     class_order = {class_name: index for index, class_name in enumerate(class_names)}
 
+    context = {
+        'all_classes': all_classes,
+        'class_filter': class_filter,
+        'all_classes_selected': all_classes_selected,
+        'roll_filter': roll_filter,
+        'view_mode': view_mode,
+    }
+
+    if view_mode == 'month':
+        # Monthly summary needs one specific class (an "all classes" month
+        # table would be huge/unreadable) -- same rule as the teacher-facing
+        # class_history page.
+        year, month, month_str = _month_bounds(request.GET.get('month'))
+        records = []
+        if class_filter and not all_classes_selected:
+            students_qs = Student.objects.filter(class_name=class_filter)
+            if roll_filter:
+                students_qs = students_qs.filter(roll_no__icontains=roll_filter)
+            students = list(students_qs.order_by('section', 'roll_no'))
+            for student in students:
+                qs = Attendance.objects.filter(student=student, date__year=year, date__month=month)
+                present = qs.filter(is_present=True).count()
+                absent = qs.filter(is_present=False).count()
+                records.append({
+                    'student': student,
+                    'present': present,
+                    'absent': absent,
+                    'marked_days': present + absent,
+                })
+        context.update({'month_str': month_str, 'records': records})
+        return render(request, 'attendance/attendance_history.html', context)
+
+    date_filter = get_report_date(request.GET.get('date')).isoformat()
     records = []
     if all_classes_selected or class_filter or roll_filter:
         students = Student.objects.all()
@@ -1206,16 +1289,13 @@ def attendance_history(request):
     present_count = sum(1 for r in records if r['status'] == 'present')
     absent_count = sum(1 for r in records if r['status'] == 'absent')
 
-    return render(request, 'attendance/attendance_history.html', {
-        'all_classes': all_classes,
-        'class_filter': class_filter,
-        'all_classes_selected': all_classes_selected,
-        'roll_filter': roll_filter,
+    context.update({
         'date_filter': date_filter,
         'records': records,
         'present_count': present_count,
         'absent_count': absent_count,
     })
+    return render(request, 'attendance/attendance_history.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -1290,6 +1370,104 @@ def export_attendance(request):
     ws.column_dimensions['F'].width = 12
 
     filename = f"Attendance_Class_{class_filter}_{date_filter}.xlsx"
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def export_attendance_month(request):
+    """
+    Date-wise attendance register for one class/month as an Excel grid:
+    one row per student, one column per date that has any attendance
+    record that month, each cell showing P/A/- , plus Present/Absent
+    totals. Available to admins (any class) and teachers (their own
+    assigned class only, enforced the same way as class_history).
+    """
+    is_admin_user, allowed_classes = _viewer_allowed_classes(request.user)
+    class_filter = request.GET.get('class', '').strip()
+    if class_filter not in allowed_classes:
+        return redirect('dashboard')
+
+    year, month, month_str = _month_bounds(request.GET.get('month'))
+
+    students = list(Student.objects.filter(class_name=class_filter).order_by('section', 'roll_no'))
+    dates = sorted(set(
+        Attendance.objects.filter(
+            student__class_name=class_filter, date__year=year, date__month=month
+        ).values_list('date', flat=True)
+    ))
+    attendance_map = {
+        (a.student_id, a.date): a.is_present
+        for a in Attendance.objects.filter(student__in=students, date__year=year, date__month=month)
+    }
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Class {class_filter} {month_str}"[:31]
+
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3D32", end_color="1E3D32", fill_type="solid")
+    present_fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+    absent_fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    thin = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin'),
+    )
+
+    headers = ["Roll", "Name", "Section"] + [d.strftime("%d %b") for d in dates] + ["Present", "Absent"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = thin
+
+    for row_num, student in enumerate(students, 2):
+        present_count = 0
+        absent_count = 0
+
+        ws.cell(row=row_num, column=1, value=student.roll_no).border = thin
+        name_cell = ws.cell(row=row_num, column=2, value=student.name)
+        name_cell.border = thin
+        name_cell.alignment = Alignment(horizontal="left")
+        ws.cell(row=row_num, column=3, value=student.section).border = thin
+
+        col = 4
+        for d in dates:
+            status_bool = attendance_map.get((student.id, d))
+            if status_bool is True:
+                text, fill = "P", present_fill
+                present_count += 1
+            elif status_bool is False:
+                text, fill = "A", absent_fill
+                absent_count += 1
+            else:
+                text, fill = "-", None
+
+            cell = ws.cell(row=row_num, column=col, value=text)
+            cell.border = thin
+            cell.alignment = Alignment(horizontal="center")
+            if fill:
+                cell.fill = fill
+            col += 1
+
+        ws.cell(row=row_num, column=col, value=present_count).border = thin
+        ws.cell(row=row_num, column=col + 1, value=absent_count).border = thin
+
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 28
+    ws.column_dimensions['C'].width = 10
+    for i in range(len(dates)):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(4 + i)].width = 9
+    ws.column_dimensions[openpyxl.utils.get_column_letter(4 + len(dates))].width = 10
+    ws.column_dimensions[openpyxl.utils.get_column_letter(5 + len(dates))].width = 10
+    ws.freeze_panes = "D2"
+
+    filename = f"Attendance_Class_{class_filter}_{month_str}.xlsx"
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -1381,4 +1559,142 @@ def sms_status(request):
         'student_pending': student_pending,
         'teacher_failed': teacher_failed,
         'teacher_pending': teacher_pending,
+    })
+
+def _viewer_allowed_classes(user):
+    """
+    Returns (is_admin_user, [class_names_this_user_may_view]).
+    Admins may view every class; a teacher may only view the class(es)
+    assigned to them. Used by the read-only class/student history report
+    below so a teacher can check their own class's attendance history
+    (day-by-day, monthly summary, or one student's absent dates) without
+    getting admin-level access to every class or to correction actions.
+    """
+    if is_admin(user):
+        return True, get_class_choices()
+    teacher = Teacher.objects.filter(user=user).first()
+    if not teacher:
+        return False, []
+    allowed = [c for c in teacher.get_class_list() if c in get_class_choices()]
+    return False, allowed
+
+
+def _month_bounds(month_str):
+    """Parse a 'YYYY-MM' string, falling back to the current local month."""
+    try:
+        year, month = map(int, (month_str or '').split('-'))
+        datetime.date(year, month, 1)  # validates month is 1-12
+    except (ValueError, TypeError):
+        today_local = local_today()
+        year, month = today_local.year, today_local.month
+    return year, month, f"{year:04d}-{month:02d}"
+
+
+@login_required
+def class_history(request):
+    """
+    Read-only attendance report for teachers (their own class) and admins
+    (any class). Two modes:
+      - Day view (default): who was present/absent/not-marked on one date.
+      - Month view: present/absent totals per student for a whole month,
+        each linking to that student's day-by-day detail.
+    """
+    is_admin_user, allowed_classes = _viewer_allowed_classes(request.user)
+    if not allowed_classes:
+        return render(request, 'attendance/class_history.html', {'no_access': True})
+
+    class_filter = request.GET.get('class', '').strip()
+    if class_filter not in allowed_classes:
+        class_filter = allowed_classes[0]
+
+    view_mode = 'month' if request.GET.get('view') == 'month' else 'day'
+    roll_filter = request.GET.get('roll', '').strip()
+
+    students_qs = Student.objects.filter(class_name=class_filter)
+    if roll_filter:
+        students_qs = students_qs.filter(roll_no__icontains=roll_filter)
+    students = list(students_qs.order_by('section', 'roll_no'))
+
+    context = {
+        'is_admin_user': is_admin_user,
+        'allowed_classes': allowed_classes,
+        'class_filter': class_filter,
+        'view_mode': view_mode,
+        'roll_filter': roll_filter,
+    }
+
+    if view_mode == 'month':
+        year, month, month_str = _month_bounds(request.GET.get('month'))
+        records = []
+        for student in students:
+            qs = Attendance.objects.filter(student=student, date__year=year, date__month=month)
+            present = qs.filter(is_present=True).count()
+            absent = qs.filter(is_present=False).count()
+            records.append({
+                'student': student,
+                'present': present,
+                'absent': absent,
+                'marked_days': present + absent,
+            })
+        context.update({'month_str': month_str, 'records': records})
+    else:
+        date_filter = get_report_date(request.GET.get('date')).isoformat()
+        attendance_map = {
+            a.student_id: a.is_present
+            for a in Attendance.objects.filter(student__in=students, date=date_filter)
+        }
+        records = []
+        for student in students:
+            status = attendance_map.get(student.id)
+            records.append({
+                'student': student,
+                'status': 'present' if status is True else ('absent' if status is False else 'not_marked'),
+            })
+        context.update({
+            'date_filter': date_filter,
+            'records': records,
+            'present_count': sum(1 for r in records if r['status'] == 'present'),
+            'absent_count': sum(1 for r in records if r['status'] == 'absent'),
+        })
+
+    return render(request, 'attendance/class_history.html', context)
+
+
+@login_required
+def student_history_detail(request, student_id):
+    """
+    One student's full attendance for a chosen month: which dates they
+    were present/absent, with prev/next month navigation. Accessible to
+    admins for any student, and to a teacher only for a student in one
+    of their own assigned classes.
+    """
+    student = get_object_or_404(Student, pk=student_id)
+    is_admin_user, allowed_classes = _viewer_allowed_classes(request.user)
+    if not is_admin_user and student.class_name not in allowed_classes:
+        return render(request, 'attendance/class_history.html', {'no_access': True})
+
+    year, month, month_str = _month_bounds(request.GET.get('month'))
+
+    records = list(
+        Attendance.objects.filter(student=student, date__year=year, date__month=month)
+        .order_by('date')
+    )
+    absent_dates = [r.date for r in records if not r.is_present]
+    present_dates = [r.date for r in records if r.is_present]
+
+    first_of_month = datetime.date(year, month, 1)
+    prev_month = (first_of_month - datetime.timedelta(days=1)).strftime('%Y-%m')
+    next_month = f"{year + 1:04d}-01" if month == 12 else f"{year:04d}-{month + 1:02d}"
+
+    return render(request, 'attendance/student_history_detail.html', {
+        'student': student,
+        'is_admin_user': is_admin_user,
+        'month_str': month_str,
+        'prev_month': prev_month,
+        'next_month': next_month,
+        'present_dates': present_dates,
+        'absent_dates': absent_dates,
+        'present_count': len(present_dates),
+        'absent_count': len(absent_dates),
+        'total_marked': len(records),
     })
