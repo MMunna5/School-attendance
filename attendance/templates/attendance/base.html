@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -223,8 +224,11 @@
                 </div>
 
 
-                <!-- CENTER: SCHOOL NAME -->
-                <div class="flex-1 min-w-0 text-center px-1 sm:px-2">
+                <!-- CENTER: SCHOOL LOGO + NAME -->
+                <div class="flex-1 min-w-0 flex items-center justify-center gap-2 px-1 sm:px-2">
+
+                    <img src="{% static 'attendance/logo.jpeg' %}" alt="SNHMS Logo"
+                        class="h-8 sm:h-10 w-8 sm:w-10 rounded-full flex-shrink-0 object-cover">
 
                     <div class="font-extrabold
                                 text-[13px]
@@ -235,7 +239,7 @@
                                 drop-shadow-md
                                 truncate">
 
-                        Shaheed Nur Hossain Memorial School, Biral, Dinajpur
+                        SNHMS-Attendance
 
                     </div>
 
