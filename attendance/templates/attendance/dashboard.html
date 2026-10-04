@@ -75,6 +75,12 @@
     {% endfor %}
 </div>
 
+<a href="{% url 'absent_report' %}"
+    class="block bg-white border-2 border-absent/20 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-absent transition mb-4">
+    <h2 class="text-lg font-bold text-absent">Absent Yesterday</h2>
+    <p class="text-sm text-ink-soft mt-1">Quick list of who was absent on the previous day</p>
+</a>
+
 <a href="{% url 'class_history' %}"
     class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition mb-6">
     <h2 class="text-lg font-bold text-forest-deep">Class Attendance History</h2>

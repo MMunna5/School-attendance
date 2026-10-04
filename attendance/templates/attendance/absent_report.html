@@ -1,0 +1,99 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Absent Report - Attendance Register{% endblock %}
+{% block header_title %}Absent Report{% endblock %}
+{% block header_links %}
+<a href="{% url 'dashboard' %}" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+    </svg>
+    Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if no_access %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+    No class is assigned to you yet. Please contact the admin.
+</div>
+{% else %}
+
+{% if allowed_classes|length > 1 %}
+<form method="get" class="flex gap-2 mb-4">
+    <input type="hidden" name="date" value="{{ target_date|date:'Y-m-d' }}">
+    <select name="class" onchange="this.form.submit()"
+        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-forest">
+        {% for c in allowed_classes %}
+        <option value="{{ c }}" {% if c == class_filter %}selected{% endif %}>Class {{ c }}</option>
+        {% endfor %}
+    </select>
+</form>
+{% endif %}
+
+<div class="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-3 mb-5 shadow-sm">
+    <a href="?class={{ class_filter }}&date={{ prev_date }}"
+        class="text-forest font-bold text-sm px-3 py-1.5 hover:bg-forest/5 rounded-lg">← Prev Day</a>
+    <div class="text-center">
+        <div class="font-display text-sm font-bold text-forest-deep">{{ target_date|date:"l, d M Y" }}</div>
+        <div class="text-[11px] text-ink-soft">Class {{ class_filter }}{% if is_today %} · Today{% endif %}</div>
+    </div>
+    <a href="?class={{ class_filter }}&date={{ next_date }}"
+        class="text-forest font-bold text-sm px-3 py-1.5 hover:bg-forest/5 rounded-lg">Next Day →</a>
+</div>
+
+{% if not was_taken %}
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
+    Attendance was not taken for Class {{ class_filter }} on this date.
+</div>
+{% else %}
+
+<div class="grid grid-cols-2 gap-3 mb-5">
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
+        <div class="text-2xl font-bold text-absent">{{ absent_count }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-center shadow-sm">
+        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Total Marked</div>
+        <div class="text-2xl font-bold text-forest-deep">{{ marked_count }}/{{ total_students }}</div>
+    </div>
+</div>
+
+{% if not is_complete %}
+<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 mb-5 text-xs">
+    Only {{ marked_count }} of {{ total_students }} students were marked this day — the list below may be
+    incomplete.
+</div>
+{% endif %}
+
+{% if absentees %}
+<div class="space-y-2.5">
+    {% for a in absentees %}
+    <div class="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 shadow-sm">
+        <div
+            class="w-10 h-10 rounded-full border-2 border-absent flex items-center justify-center text-sm font-bold text-absent flex-shrink-0 bg-red-50">
+            {{ a.student.roll_no }}
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-forest-deep break-words">{{ a.student.name }}</div>
+            <div class="text-xs text-ink-soft">
+                Class {{ a.student.class_name }}{{ a.student.section }}
+                {% if a.student.parent_mobile %} · {{ a.student.parent_mobile }}{% endif %}
+            </div>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-absent">Absent</span>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-present py-16 bg-white border border-gray-200 rounded-2xl font-semibold">
+    Nobody was absent that day. 🎉
+</div>
+{% endif %}
+
+{% endif %}
+{% endif %}
+
+{% endblock %}

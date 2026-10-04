@@ -31,6 +31,8 @@ urlpatterns = [
 
     path('admin-panel/sms-status/', views.sms_status, name='sms_status'),
 
+    path('absent-report/', views.absent_report, name='absent_report'),
+
     path('history/', views.class_history, name='class_history'),
     path('history/student/<int:student_id>/', views.student_history_detail, name='student_history_detail'),
 ]

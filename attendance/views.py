@@ -1698,3 +1698,53 @@ def student_history_detail(request, student_id):
         'absent_count': len(absent_dates),
         'total_marked': len(records),
     })
+
+
+@login_required
+def absent_report(request):
+    """
+    Quick "who was absent on a given day" list for a teacher's own class
+    (or any class, for an admin) -- defaults to yesterday, with prev/next
+    day navigation. This is the fast, no-filters-needed view a teacher
+    opens right after logging in; the full history/correction tools
+    live on the separate history pages.
+    """
+    is_admin_user, allowed_classes = _viewer_allowed_classes(request.user)
+    if not allowed_classes:
+        return render(request, 'attendance/absent_report.html', {'no_access': True})
+
+    class_filter = request.GET.get('class', '').strip()
+    if class_filter not in allowed_classes:
+        class_filter = allowed_classes[0]
+
+    date_param = request.GET.get('date', '').strip()
+    if date_param:
+        target_date = get_report_date(date_param)
+    else:
+        target_date = local_today() - datetime.timedelta(days=1)
+
+    total_students = Student.objects.filter(class_name=class_filter).count()
+    marked_count = Attendance.objects.filter(
+        student__class_name=class_filter, date=target_date
+    ).count()
+    absentees = list(
+        Attendance.objects.select_related('student')
+        .filter(student__class_name=class_filter, date=target_date, is_present=False)
+        .order_by('student__section', 'student__roll_no')
+    )
+
+    return render(request, 'attendance/absent_report.html', {
+        'is_admin_user': is_admin_user,
+        'allowed_classes': allowed_classes,
+        'class_filter': class_filter,
+        'target_date': target_date,
+        'prev_date': (target_date - datetime.timedelta(days=1)).isoformat(),
+        'next_date': (target_date + datetime.timedelta(days=1)).isoformat(),
+        'is_today': target_date == local_today(),
+        'absentees': absentees,
+        'absent_count': len(absentees),
+        'total_students': total_students,
+        'marked_count': marked_count,
+        'was_taken': marked_count > 0,
+        'is_complete': total_students > 0 and marked_count == total_students,
+    })
