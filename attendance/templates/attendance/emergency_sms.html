@@ -47,7 +47,13 @@
         </div>
 
         <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %}">
-            <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Student</label>
+            <label for="student-search" class="block text-sm font-semibold text-ink mb-2">Search student</label>
+            <input id="student-search" type="search" autocomplete="off"
+                   class="w-full rounded-xl border border-gray-300 p-3 mb-3"
+                   placeholder="Type student name, class, section, or roll number..."
+                   aria-describedby="student-search-help">
+            <p id="student-search-help" class="text-xs text-ink-soft mb-2">Search by name or roll number to quickly find a student.</p>
+            <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Select student</label>
             <select id="student_id" name="student_id" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
                 <option value="">Choose student</option>
                 {% for student in students %}
@@ -56,6 +62,7 @@
                 </option>
                 {% endfor %}
             </select>
+            <p id="student-search-count" class="text-xs text-ink-soft mt-2" aria-live="polite"></p>
         </div>
 
         <div>
@@ -71,4 +78,38 @@
         </button>
     </form>
 </div>
+
+<script>
+(function () {
+    const searchInput = document.getElementById('student-search');
+    const studentSelect = document.getElementById('student_id');
+    const countLabel = document.getElementById('student-search-count');
+
+    if (!searchInput || !studentSelect || !countLabel) return;
+
+    const studentOptions = Array.from(studentSelect.options).slice(1);
+
+    function filterStudents() {
+        const query = searchInput.value.trim().toLocaleLowerCase();
+        let visibleCount = 0;
+
+        studentOptions.forEach(function (option) {
+            const matches = option.textContent.toLocaleLowerCase().includes(query);
+            option.hidden = !matches;
+            if (matches) visibleCount += 1;
+        });
+
+        countLabel.textContent = query
+            ? visibleCount + ' student(s) found'
+            : studentOptions.length + ' student(s) available';
+        
+        if (studentSelect.selectedOptions.length && studentSelect.selectedOptions[0].hidden) {
+            studentSelect.value = '';
+        }
+    }
+
+    searchInput.addEventListener('input', filterStudents);
+    filterStudents();
+})();
+</script>
 {% endblock %}
