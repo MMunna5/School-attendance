@@ -25,16 +25,22 @@
 </form>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-    {% for label, c in [('Student', counts.student), ('Teacher', counts.teacher)] %}
     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">{{ label }} SMS · {{ month_str }}</div>
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS · {{ month_str }}</div>
         <div class="grid grid-cols-3 gap-2 text-center">
-            <div><div class="text-lg font-bold text-present">{{ c.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
-            <div><div class="text-lg font-bold text-absent">{{ c.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
-            <div><div class="text-lg font-bold text-amber-600">{{ c.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
+            <div><div class="text-lg font-bold text-present">{{ counts.student.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
+            <div><div class="text-lg font-bold text-absent">{{ counts.student.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
+            <div><div class="text-lg font-bold text-amber-600">{{ counts.student.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
         </div>
     </div>
-    {% endfor %}
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · {{ month_str }}</div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+            <div><div class="text-lg font-bold text-present">{{ counts.teacher.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
+            <div><div class="text-lg font-bold text-absent">{{ counts.teacher.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
+            <div><div class="text-lg font-bold text-amber-600">{{ counts.teacher.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
+        </div>
+    </div>
 </div>
 
 
