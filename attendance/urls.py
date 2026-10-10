@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .emergency_views import emergency_sms
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -30,6 +31,7 @@ urlpatterns = [
     path('admin-panel/attendance/<int:student_id>/correct/', views.correct_attendance, name='correct_attendance'),
 
     path('admin-panel/sms-status/', views.sms_status, name='sms_status'),
+    path('admin-panel/emergency-sms/', emergency_sms, name='emergency_sms'),
 
     path('absent-report/', views.absent_report, name='absent_report'),
 
