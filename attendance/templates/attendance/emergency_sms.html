@@ -1,0 +1,74 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Emergency SMS - Attendance Register{% endblock %}
+{% block eyebrow %}Admin{% endblock %}
+{% block header_title %}Emergency SMS / Notice{% endblock %}
+{% block header_links %}
+<a href="{% url 'dashboard' %}" class="nav-btn">← Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 mb-5">
+        <h2 class="font-bold">Send an urgent notice to parents</h2>
+        <p class="text-sm mt-1">Choose all students, one class, or one student. The configured school name is added automatically to the SMS.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-2 mb-5">
+        {% for message in messages %}
+        <div class="rounded-xl border px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 border-red-200 text-red-800{% else %}bg-green-50 border-green-200 text-green-800{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5"
+          onsubmit="return confirm('Send this SMS notice to the selected recipients now?');">
+        {% csrf_token %}
+        <div>
+            <label for="target_type" class="block text-sm font-semibold text-ink mb-2">Send to</label>
+            <select id="target_type" name="target_type" required
+                    class="w-full rounded-xl border border-gray-300 p-3 bg-white"
+                    onchange="document.getElementById('class-field').classList.toggle('hidden', this.value !== 'class'); document.getElementById('student-field').classList.toggle('hidden', this.value !== 'student');">
+                <option value="all" {% if target_type == 'all' %}selected{% endif %}>All students / all classes</option>
+                <option value="class" {% if target_type == 'class' %}selected{% endif %}>A specific class</option>
+                <option value="student" {% if target_type == 'student' %}selected{% endif %}>A specific student</option>
+            </select>
+        </div>
+
+        <div id="class-field" class="{% if target_type != 'class' %}hidden{% endif %}">
+            <label for="class_name" class="block text-sm font-semibold text-ink mb-2">Class</label>
+            <select id="class_name" name="class_name" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
+                <option value="">Choose class</option>
+                {% for class_name in classes %}
+                <option value="{{ class_name }}" {% if selected_class == class_name %}selected{% endif %}>Class {{ class_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %}">
+            <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Student</label>
+            <select id="student_id" name="student_id" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
+                <option value="">Choose student</option>
+                {% for student in students %}
+                <option value="{{ student.id }}" {% if selected_student_id == student.id|stringformat:"s" %}selected{% endif %}>
+                    Class {{ student.class_name }}{{ student.section }} · Roll {{ student.roll_no }} · {{ student.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="message" class="block text-sm font-semibold text-ink mb-2">Notice message</label>
+            <textarea id="message" name="message" rows="5" maxlength="1000" required
+                      class="w-full rounded-xl border border-gray-300 p-3 focus:border-forest focus:ring-1 focus:ring-forest"
+                      placeholder="Write the notice you want to send to parents...">{{ message_text }}</textarea>
+            <p class="text-xs text-ink-soft mt-1">Maximum 1000 characters. SMS charges depend on your SMS provider and message length.</p>
+        </div>
+
+        <button type="submit" class="w-full sm:w-auto rounded-xl bg-forest text-white font-semibold px-6 py-3 hover:opacity-90">
+            Send Emergency SMS
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -161,6 +161,12 @@
         <h2 class="text-lg font-bold text-forest-deep">SMS Status</h2>
         <p class="text-sm text-ink-soft mt-1">See failed/pending absence SMS and retry them</p>
     </a>
+
+    <a href="{% url 'emergency_sms' %}"
+        class="block bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-amber-400 transition">
+        <h2 class="text-lg font-bold text-amber-900">Emergency SMS / Notice</h2>
+        <p class="text-sm text-amber-800 mt-1">Send urgent notices to all classes, a specific class, or one student</p>
+    </a>
 </div>
 {% endif %}
 
