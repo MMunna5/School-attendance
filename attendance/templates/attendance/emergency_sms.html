@@ -22,7 +22,7 @@
     </div>
     {% endif %}
 
-    <form method="post" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5"
+    <form method="post" id="emergency-sms-form" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5"
           onsubmit="return confirm('Send this SMS notice to the selected recipients now?');">
         {% csrf_token %}
         <div>
@@ -46,23 +46,41 @@
             </select>
         </div>
 
-        <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %}">
-            <label for="student-search" class="block text-sm font-semibold text-ink mb-2">Search student</label>
-            <input id="student-search" type="search" autocomplete="off"
-                   class="w-full rounded-xl border border-gray-300 p-3 mb-3"
-                   placeholder="Type student name, class, section, or roll number..."
-                   aria-describedby="student-search-help">
-            <p id="student-search-help" class="text-xs text-ink-soft mb-2">Search by name or roll number to quickly find a student.</p>
-            <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Select student</label>
-            <select id="student_id" name="student_id" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
-                <option value="">Choose student</option>
-                {% for student in students %}
-                <option value="{{ student.id }}" {% if selected_student_id == student.id|stringformat:"s" %}selected{% endif %}>
-                    Class {{ student.class_name }}{{ student.section }} · Roll {{ student.roll_no }} · {{ student.name }}
-                </option>
-                {% endfor %}
-            </select>
-            <p id="student-search-count" class="text-xs text-ink-soft mt-2" aria-live="polite"></p>
+        <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %} space-y-3">
+            <div>
+                <label for="student-search-field" class="block text-sm font-semibold text-ink mb-2">Search students by</label>
+                <select id="student-search-field" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
+                    <option value="name">Student name</option>
+                    <option value="class">Class</option>
+                    <option value="roll">Roll number</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="student-search" class="block text-sm font-semibold text-ink mb-2">Search value</label>
+                <input id="student-search" type="search" autocomplete="off"
+                       class="w-full rounded-xl border border-gray-300 p-3"
+                       placeholder="Enter student name..."
+                       aria-describedby="student-search-help">
+                <p id="student-search-help" class="text-xs text-ink-soft mt-2">Choose a search field, enter a value, then select the matching student below.</p>
+            </div>
+
+            <div>
+                <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Select student</label>
+                <select id="student_id" name="student_id" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
+                    <option value="">Choose student</option>
+                    {% for student in students %}
+                    <option value="{{ student.id }}"
+                            data-name="{{ student.name|lower }}"
+                            data-class="{{ student.class_name|lower }}"
+                            data-roll="{{ student.roll_no|lower }}"
+                            {% if selected_student_id == student.id|stringformat:"s" %}selected{% endif %}>
+                        Class {{ student.class_name }}{{ student.section }} · Roll {{ student.roll_no }} · {{ student.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p id="student-search-count" class="text-xs text-ink-soft mt-2" aria-live="polite"></p>
+            </div>
         </div>
 
         <div>
@@ -73,7 +91,7 @@
             <p class="text-xs text-ink-soft mt-1">Maximum 1000 characters. SMS charges depend on your SMS provider and message length.</p>
         </div>
 
-        <button type="submit" class="w-full sm:w-auto rounded-xl bg-forest text-white font-semibold px-6 py-3 hover:opacity-90">
+        <button id="send-emergency-sms" type="submit" class="w-full sm:w-auto rounded-xl bg-forest text-white font-semibold px-6 py-3 hover:opacity-90">
             Send Emergency SMS
         </button>
     </form>
@@ -81,33 +99,48 @@
 
 <script>
 (function () {
+    const searchField = document.getElementById('student-search-field');
     const searchInput = document.getElementById('student-search');
     const studentSelect = document.getElementById('student_id');
     const countLabel = document.getElementById('student-search-count');
 
-    if (!searchInput || !studentSelect || !countLabel) return;
+    if (!searchField || !searchInput || !studentSelect || !countLabel) return;
 
     const studentOptions = Array.from(studentSelect.options).slice(1);
+    const placeholders = {
+        name: 'Enter student name...',
+        class: 'Enter class (e.g. 8)...',
+        roll: 'Enter roll number...'
+    };
 
     function filterStudents() {
+        const field = searchField.value;
         const query = searchInput.value.trim().toLocaleLowerCase();
         let visibleCount = 0;
 
         studentOptions.forEach(function (option) {
-            const matches = option.textContent.toLocaleLowerCase().includes(query);
+            const value = (option.dataset[field] || '').toLocaleLowerCase();
+            const matches = !query || value.includes(query);
             option.hidden = !matches;
             if (matches) visibleCount += 1;
         });
 
         countLabel.textContent = query
-            ? visibleCount + ' student(s) found'
+            ? visibleCount + ' matching student(s) found'
             : studentOptions.length + ' student(s) available';
-        
+
         if (studentSelect.selectedOptions.length && studentSelect.selectedOptions[0].hidden) {
             studentSelect.value = '';
         }
     }
 
+    function updateSearchField() {
+        searchInput.placeholder = placeholders[searchField.value] || 'Search students...';
+        searchInput.value = '';
+        filterStudents();
+    }
+
+    searchField.addEventListener('change', updateSearchField);
     searchInput.addEventListener('input', filterStudents);
     filterStudents();
 })();
