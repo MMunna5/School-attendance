@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Student
@@ -32,6 +32,7 @@ class EmergencySmsTests(TestCase):
         response = self.client.get(reverse("emergency_sms"))
         self.assertEqual(response.status_code, 302)
 
+    @override_settings(SCHOOL_SHORT_NAME="School")
     @patch("attendance.emergency_views.send_sms")
     def test_admin_can_send_notice_to_one_class(self, mock_send_sms):
         mock_send_sms.return_value = (True, "SMS sent")
@@ -41,6 +42,7 @@ class EmergencySmsTests(TestCase):
         self.assertRedirects(response, reverse("emergency_sms"))
         mock_send_sms.assert_called_once_with("01700000001", "School closes early today.\nSchool")
 
+    @override_settings(SCHOOL_SHORT_NAME="School")
     @patch("attendance.emergency_views.send_sms")
     def test_admin_can_send_notice_to_one_student(self, mock_send_sms):
         mock_send_sms.return_value = (True, "SMS sent")
