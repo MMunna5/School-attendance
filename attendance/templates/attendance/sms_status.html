@@ -16,6 +16,34 @@
 
 {% block content %}
 
+<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
+    <div>
+        <label for="sms-month" class="block text-xs font-semibold text-ink-soft mb-1.5">Month</label>
+        <input id="sms-month" type="month" name="month" value="{{ month_str }}" class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+    </div>
+    <button type="submit" class="bg-forest text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-forest-deep transition">View Month</button>
+</form>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS · {{ month_str }}</div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+            <div><div class="text-lg font-bold text-present">{{ counts.student.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
+            <div><div class="text-lg font-bold text-absent">{{ counts.student.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
+            <div><div class="text-lg font-bold text-amber-600">{{ counts.student.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
+        </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · {{ month_str }}</div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+            <div><div class="text-lg font-bold text-present">{{ counts.teacher.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
+            <div><div class="text-lg font-bold text-absent">{{ counts.teacher.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
+            <div><div class="text-lg font-bold text-amber-600">{{ counts.teacher.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
+        </div>
+    </div>
+</div>
+
+
 <div class="text-sm text-ink-soft mb-5">
     Absence SMS that failed to send (with the provider's error) or are still waiting in the queue.
     Showing up to 200 of each. "Retry" puts a failed message back in the queue for the background worker

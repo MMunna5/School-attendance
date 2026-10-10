@@ -1516,10 +1516,8 @@ def correct_attendance(request, student_id):
 @user_passes_test(is_admin)
 def sms_status(request):
     """
-    Admin-only visibility into the SMS queue: which absence alerts are
-    still pending, and which ones failed (with the provider's error, so
-    a bad phone number or a provider rejection is visible in the app
-    instead of only in the Django admin / database).
+    Admin-only SMS queue status with sent/failed/pending counts for a
+    selectable month. Failed and pending lists remain available for retry.
     """
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1532,6 +1530,41 @@ def sms_status(request):
                 next_attempt_at=None,
             )
         return redirect('sms_status')
+
+    # Match the Laravel implementation: default to the current Bangladesh month.
+    month_str = (request.GET.get('month') or '').strip()
+    try:
+        year, month = map(int, month_str.split('-'))
+        datetime.date(year, month, 1)  # validates year/month
+    except (ValueError, TypeError):
+        today_local = local_today()
+        year, month = today_local.year, today_local.month
+        month_str = f"{year:04d}-{month:02d}"
+
+    counts = {
+        'student': {
+            'sent': AbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=AbsenceSms.STATUS_SENT
+            ).count(),
+            'failed': AbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=AbsenceSms.STATUS_FAILED
+            ).count(),
+            'pending': AbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=AbsenceSms.STATUS_PENDING
+            ).count(),
+        },
+        'teacher': {
+            'sent': TeacherAbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_SENT
+            ).count(),
+            'failed': TeacherAbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_FAILED
+            ).count(),
+            'pending': TeacherAbsenceSms.objects.filter(
+                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_PENDING
+            ).count(),
+        },
+    }
 
     student_failed = (
         AbsenceSms.objects.select_related('student')
@@ -1559,6 +1592,8 @@ def sms_status(request):
         'student_pending': student_pending,
         'teacher_failed': teacher_failed,
         'teacher_pending': teacher_pending,
+        'month_str': month_str,
+        'counts': counts,
     })
 
 def _viewer_allowed_classes(user):
