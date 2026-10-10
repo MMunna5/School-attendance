@@ -23,13 +23,11 @@
     {% endif %}
 
     <form method="post" id="emergency-sms-form" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5"
-          onsubmit="return confirm('Send this SMS notice to the selected recipients now?');">
         {% csrf_token %}
         <div>
             <label for="target_type" class="block text-sm font-semibold text-ink mb-2">Send to</label>
             <select id="target_type" name="target_type" required
-                    class="w-full rounded-xl border border-gray-300 p-3 bg-white"
-                    onchange="document.getElementById('class-field').classList.toggle('hidden', this.value !== 'class'); document.getElementById('student-field').classList.toggle('hidden', this.value !== 'student');">
+                    class="w-full rounded-xl border border-gray-300 p-3 bg-white">
                 <option value="all" {% if target_type == 'all' %}selected{% endif %}>All students / all classes</option>
                 <option value="class" {% if target_type == 'class' %}selected{% endif %}>A specific class</option>
                 <option value="student" {% if target_type == 'student' %}selected{% endif %}>A specific student</option>
@@ -46,41 +44,47 @@
             </select>
         </div>
 
-        <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %} space-y-3">
+        <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %} space-y-4">
             <div>
-                <label for="student-search-field" class="block text-sm font-semibold text-ink mb-2">Search students by</label>
-                <select id="student-search-field" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
-                    <option value="name">Student name</option>
-                    <option value="class">Class</option>
-                    <option value="roll">Roll number</option>
-                </select>
+                <h3 class="text-sm font-semibold text-ink mb-1">Find a student</h3>
+                <p class="text-xs text-ink-soft">Use any one field or combine them. For example, choose Class 8 and enter roll 12. Matching students will appear below.</p>
             </div>
 
-            <div>
-                <label for="student-search" class="block text-sm font-semibold text-ink mb-2">Search value</label>
-                <input id="student-search" type="search" autocomplete="off"
-                       class="w-full rounded-xl border border-gray-300 p-3"
-                       placeholder="Enter student name..."
-                       aria-describedby="student-search-help">
-                <p id="student-search-help" class="text-xs text-ink-soft mt-2">Choose a search field, enter a value, then select the matching student below.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label for="search-class" class="block text-sm font-semibold text-ink mb-2">Class</label>
+                    <select id="search-class" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
+                        <option value="">All classes</option>
+                        {% for class_name in classes %}
+                        <option value="{{ class_name|lower }}">Class {{ class_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="search-roll" class="block text-sm font-semibold text-ink mb-2">Roll number</label>
+                    <input id="search-roll" type="search" inputmode="numeric" autocomplete="off"
+                           class="w-full rounded-xl border border-gray-300 p-3"
+                           placeholder="e.g. 12">
+                </div>
+                <div>
+                    <label for="search-name" class="block text-sm font-semibold text-ink mb-2">Student name</label>
+                    <input id="search-name" type="search" autocomplete="off"
+                           class="w-full rounded-xl border border-gray-300 p-3"
+                           placeholder="Enter name">
+                </div>
             </div>
 
-            <div>
-                <label for="student_id" class="block text-sm font-semibold text-ink mb-2">Select student</label>
-                <select id="student_id" name="student_id" class="w-full rounded-xl border border-gray-300 p-3 bg-white">
-                    <option value="">Choose student</option>
-                    {% for student in students %}
-                    <option value="{{ student.id }}"
-                            data-name="{{ student.name|lower }}"
-                            data-class="{{ student.class_name|lower }}"
-                            data-roll="{{ student.roll_no|lower }}"
-                            {% if selected_student_id == student.id|stringformat:"s" %}selected{% endif %}>
-                        Class {{ student.class_name }}{{ student.section }} · Roll {{ student.roll_no }} · {{ student.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <p id="student-search-count" class="text-xs text-ink-soft mt-2" aria-live="polite"></p>
+            <div class="flex items-center justify-between gap-3">
+                <p id="student-search-count" class="text-sm text-ink-soft" aria-live="polite">Enter search details to find a student.</p>
+                <button type="button" id="clear-student-search" class="text-sm font-semibold underline text-ink">Clear filters</button>
             </div>
+
+            <div id="student-search-results" class="space-y-2 max-h-80 overflow-y-auto" role="radiogroup" aria-label="Matching students">
+                <p class="text-sm text-ink-soft rounded-xl border border-dashed border-gray-300 p-4">Choose a class, enter a roll number or name to see matching students here.</p>
+            </div>
+
+            <input type="hidden" id="student_id" name="student_id" value="{{ selected_student_id }}">
+            <div id="selected-student-summary" class="hidden rounded-xl border border-forest bg-green-50 p-3 text-sm text-green-900" aria-live="polite"></div>
         </div>
 
         <div>
@@ -99,50 +103,167 @@
 
 <script>
 (function () {
-    const searchField = document.getElementById('student-search-field');
-    const searchInput = document.getElementById('student-search');
-    const studentSelect = document.getElementById('student_id');
+    const targetType = document.getElementById('target_type');
+    const classField = document.getElementById('class-field');
+    const studentField = document.getElementById('student-field');
+    const className = document.getElementById('class_name');
+    const searchClass = document.getElementById('search-class');
+    const searchRoll = document.getElementById('search-roll');
+    const searchName = document.getElementById('search-name');
+    const results = document.getElementById('student-search-results');
     const countLabel = document.getElementById('student-search-count');
+    const studentId = document.getElementById('student_id');
+    const selectedSummary = document.getElementById('selected-student-summary');
+    const clearButton = document.getElementById('clear-student-search');
 
-    if (!searchField || !searchInput || !studentSelect || !countLabel) return;
+    if (!targetType || !results || !studentId) return;
 
-    const studentOptions = Array.from(studentSelect.options).slice(1);
-    const placeholders = {
-        name: 'Enter student name...',
-        class: 'Enter class (e.g. 8)...',
-        roll: 'Enter roll number...'
-    };
+    const students = [
+        {% for student in students %}
+        {
+            id: "{{ student.id|escapejs }}",
+            name: "{{ student.name|escapejs }}",
+            className: "{{ student.class_name|escapejs }}",
+            section: "{{ student.section|escapejs }}",
+            roll: "{{ student.roll_no|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
 
-    function filterStudents() {
-        const field = searchField.value;
-        const query = searchInput.value.trim().toLocaleLowerCase();
-        let visibleCount = 0;
+    function updateTargetFields() {
+        classField.classList.toggle('hidden', targetType.value !== 'class');
+        studentField.classList.toggle('hidden', targetType.value !== 'student');
+    }
 
-        studentOptions.forEach(function (option) {
-            const value = (option.dataset[field] || '').toLocaleLowerCase();
-            const matches = !query || value.includes(query);
-            option.hidden = !matches;
-            if (matches) visibleCount += 1;
+    function normalized(value) {
+        return String(value || '').trim().toLocaleLowerCase();
+    }
+
+    function selectStudent(student, card) {
+        studentId.value = student.id;
+        results.querySelectorAll('[data-student-card]').forEach(function (item) {
+            item.classList.remove('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
+            item.setAttribute('aria-checked', 'false');
+        });
+        card.classList.add('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
+        card.setAttribute('aria-checked', 'true');
+        selectedSummary.textContent = 'Selected: Class ' + student.className +
+            (student.section ? student.section : '') + ' · Roll ' + student.roll + ' · ' + student.name;
+        selectedSummary.classList.remove('hidden');
+    }
+
+    function renderResults() {
+        if (!searchClass || !searchRoll || !searchName) return;
+        const classQuery = normalized(searchClass.value);
+        const rollQuery = normalized(searchRoll.value);
+        const nameQuery = normalized(searchName.value);
+
+        const hasSearch = Boolean(classQuery || rollQuery || nameQuery);
+        const matches = students.filter(function (student) {
+            return (!classQuery || normalized(student.className) === classQuery) &&
+                (!rollQuery || normalized(student.roll).includes(rollQuery)) &&
+                (!nameQuery || normalized(student.name).includes(nameQuery));
         });
 
-        countLabel.textContent = query
-            ? visibleCount + ' matching student(s) found'
-            : studentOptions.length + ' student(s) available';
+        results.replaceChildren();
 
-        if (studentSelect.selectedOptions.length && studentSelect.selectedOptions[0].hidden) {
-            studentSelect.value = '';
+        if (!hasSearch) {
+            countLabel.textContent = 'Enter one or more search details';
+            const prompt = document.createElement('p');
+            prompt.className = 'text-sm text-ink-soft rounded-xl border border-dashed border-gray-300 p-4';
+            prompt.textContent = 'Choose a class, enter a roll number, or type a student name. You can combine all three filters.';
+            results.appendChild(prompt);
+            return;
+        }
+
+        if (studentId.value && !matches.some(function (student) { return student.id === studentId.value; })) {
+            studentId.value = '';
+            selectedSummary.textContent = '';
+            selectedSummary.classList.add('hidden');
+        }
+
+        countLabel.textContent = matches.length + ' matching student(s)';
+
+        if (!matches.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-sm text-ink-soft rounded-xl border border-dashed border-gray-300 p-4';
+            empty.textContent = 'No students match these filters. Try changing the class, roll number, or name.';
+            results.appendChild(empty);
+            return;
+        }
+
+        matches.slice(0, 100).forEach(function (student) {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.dataset.studentCard = 'true';
+            card.setAttribute('role', 'radio');
+            card.setAttribute('aria-checked', studentId.value === student.id ? 'true' : 'false');
+            card.className = 'w-full text-left rounded-xl border border-gray-200 p-3 hover:border-forest hover:bg-gray-50 transition-colors';
+            if (studentId.value === student.id) {
+                card.classList.add('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
+            }
+
+            const title = document.createElement('span');
+            title.className = 'block font-semibold text-ink';
+            title.textContent = student.name;
+
+            const details = document.createElement('span');
+            details.className = 'block text-sm text-ink-soft mt-1';
+            details.textContent = 'Class ' + student.className +
+                (student.section ? ' · Section ' + student.section : '') +
+                ' · Roll ' + student.roll;
+
+            card.appendChild(title);
+            card.appendChild(details);
+            card.addEventListener('click', function () {
+                selectStudent(student, card);
+            });
+            results.appendChild(card);
+        });
+
+        if (matches.length > 100) {
+            const note = document.createElement('p');
+            note.className = 'text-xs text-ink-soft p-2';
+            note.textContent = 'Showing first 100 results. Add more filters to narrow the list.';
+            results.appendChild(note);
         }
     }
 
-    function updateSearchField() {
-        searchInput.placeholder = placeholders[searchField.value] || 'Search students...';
-        searchInput.value = '';
-        filterStudents();
-    }
+    targetType.addEventListener('change', updateTargetFields);
+    [searchClass, searchRoll, searchName].forEach(function (input) {
+        if (input) input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', renderResults);
+    });
 
-    searchField.addEventListener('change', updateSearchField);
-    searchInput.addEventListener('input', filterStudents);
-    filterStudents();
+    clearButton.addEventListener('click', function () {
+        searchClass.value = '';
+        searchRoll.value = '';
+        searchName.value = '';
+        studentId.value = '';
+        selectedSummary.textContent = '';
+        selectedSummary.classList.add('hidden');
+        renderResults();
+    });
+
+    document.getElementById('emergency-sms-form').addEventListener('submit', function (event) {
+        if (targetType.value === 'student' && !studentId.value) {
+            event.preventDefault();
+            alert('Please search for and select a student before sending the SMS.');
+            return;
+        }
+        const button = document.getElementById('send-emergency-sms');
+        if (button && !button.disabled) {
+            if (confirm('Send this SMS notice to the selected recipients now?')) {
+                button.disabled = true;
+                button.textContent = 'Sending SMS...';
+                button.classList.add('opacity-60', 'cursor-not-allowed');
+            } else {
+                event.preventDefault();
+            }
+        }
+    });
+
+    updateTargetFields();
+    renderResults();
 })();
 </script>
 {% endblock %}
