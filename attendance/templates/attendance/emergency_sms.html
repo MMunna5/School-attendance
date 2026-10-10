@@ -11,7 +11,7 @@
 <div class="max-w-3xl mx-auto">
     <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 mb-5">
         <h2 class="font-bold">Send an urgent notice to parents</h2>
-        <p class="text-sm mt-1">Choose all students, one class, or one student. The configured school name is added automatically to the SMS.</p>
+        <p class="text-sm mt-1">Choose all students, one class, or multiple specific students. The configured school name is added automatically to the SMS.</p>
     </div>
 
     {% if messages %}
@@ -22,7 +22,7 @@
     </div>
     {% endif %}
 
-    <form method="post" id="emergency-sms-form" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5"
+    <form method="post" id="emergency-sms-form" class="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
         {% csrf_token %}
         <div>
             <label for="target_type" class="block text-sm font-semibold text-ink mb-2">Send to</label>
@@ -30,7 +30,7 @@
                     class="w-full rounded-xl border border-gray-300 p-3 bg-white">
                 <option value="all" {% if target_type == 'all' %}selected{% endif %}>All students / all classes</option>
                 <option value="class" {% if target_type == 'class' %}selected{% endif %}>A specific class</option>
-                <option value="student" {% if target_type == 'student' %}selected{% endif %}>A specific student</option>
+                <option value="student" {% if target_type == 'student' %}selected{% endif %}>Specific student(s)</option>
             </select>
         </div>
 
@@ -47,7 +47,7 @@
         <div id="student-field" class="{% if target_type != 'student' %}hidden{% endif %} space-y-4">
             <div>
                 <h3 class="text-sm font-semibold text-ink mb-1">Find a student</h3>
-                <p class="text-xs text-ink-soft">Use any one field or combine them. For example, choose Class 8 and enter roll 12. Matching students will appear below.</p>
+                <p class="text-xs text-ink-soft">Search by class, roll number, and/or name. Select multiple students, changing the roll filter between selections if needed.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -79,12 +79,15 @@
                 <button type="button" id="clear-student-search" class="text-sm font-semibold underline text-ink">Clear filters</button>
             </div>
 
-            <div id="student-search-results" class="space-y-2 max-h-80 overflow-y-auto" role="radiogroup" aria-label="Matching students">
+            <div id="student-search-results" class="space-y-2 max-h-80 overflow-y-auto" role="group" aria-label="Matching students">
                 <p class="text-sm text-ink-soft rounded-xl border border-dashed border-gray-300 p-4">Choose a class, enter a roll number or name to see matching students here.</p>
             </div>
 
-            <input type="hidden" id="student_id" name="student_id" value="{{ selected_student_id }}">
-            <div id="selected-student-summary" class="hidden rounded-xl border border-forest bg-green-50 p-3 text-sm text-green-900" aria-live="polite"></div>
+            <div id="selected-student-inputs"></div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div id="selected-student-summary" class="hidden flex-1 rounded-xl border border-forest bg-green-50 p-3 text-sm text-green-900" aria-live="polite"></div>
+                <button type="button" id="clear-selected-students" class="text-sm font-semibold underline text-red-700">Clear selected students</button>
+            </div>
         </div>
 
         <div>
@@ -112,11 +115,13 @@
     const searchName = document.getElementById('search-name');
     const results = document.getElementById('student-search-results');
     const countLabel = document.getElementById('student-search-count');
-    const studentId = document.getElementById('student_id');
+    const selectedInputs = document.getElementById('selected-student-inputs');
+    const clearSelectedButton = document.getElementById('clear-selected-students');
+    const selectedStudentIds = new Set();
     const selectedSummary = document.getElementById('selected-student-summary');
     const clearButton = document.getElementById('clear-student-search');
 
-    if (!targetType || !results || !studentId) return;
+    if (!targetType || !results || !selectedInputs) return;
 
     const students = [
         {% for student in students %}
@@ -139,17 +144,34 @@
         return String(value || '').trim().toLocaleLowerCase();
     }
 
-    function selectStudent(student, card) {
-        studentId.value = student.id;
-        results.querySelectorAll('[data-student-card]').forEach(function (item) {
-            item.classList.remove('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
-            item.setAttribute('aria-checked', 'false');
+    function updateSelectedStudents() {
+        selectedInputs.replaceChildren();
+        selectedStudentIds.forEach(function (id) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'student_ids';
+            input.value = id;
+            selectedInputs.appendChild(input);
         });
-        card.classList.add('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
-        card.setAttribute('aria-checked', 'true');
-        selectedSummary.textContent = 'Selected: Class ' + student.className +
-            (student.section ? student.section : '') + ' · Roll ' + student.roll + ' · ' + student.name;
+        const chosen = students.filter(function (student) { return selectedStudentIds.has(student.id); });
+        if (!chosen.length) {
+            selectedSummary.textContent = '';
+            selectedSummary.classList.add('hidden');
+            return;
+        }
+        selectedSummary.textContent = 'Selected ' + chosen.length + ' student(s): ' +
+            chosen.map(function (student) {
+                return 'Class ' + student.className + (student.section ? '-' + student.section : '') +
+                    ', Roll ' + student.roll + ' (' + student.name + ')';
+            }).join('; ');
         selectedSummary.classList.remove('hidden');
+    }
+
+    function toggleStudent(student) {
+        if (selectedStudentIds.has(student.id)) selectedStudentIds.delete(student.id);
+        else selectedStudentIds.add(student.id);
+        updateSelectedStudents();
+        renderResults();
     }
 
     function renderResults() {
@@ -176,12 +198,6 @@
             return;
         }
 
-        if (studentId.value && !matches.some(function (student) { return student.id === studentId.value; })) {
-            studentId.value = '';
-            selectedSummary.textContent = '';
-            selectedSummary.classList.add('hidden');
-        }
-
         countLabel.textContent = matches.length + ' matching student(s)';
 
         if (!matches.length) {
@@ -196,16 +212,16 @@
             const card = document.createElement('button');
             card.type = 'button';
             card.dataset.studentCard = 'true';
-            card.setAttribute('role', 'radio');
-            card.setAttribute('aria-checked', studentId.value === student.id ? 'true' : 'false');
+            card.setAttribute('role', 'checkbox');
+            card.setAttribute('aria-checked', selectedStudentIds.has(student.id) ? 'true' : 'false');
             card.className = 'w-full text-left rounded-xl border border-gray-200 p-3 hover:border-forest hover:bg-gray-50 transition-colors';
-            if (studentId.value === student.id) {
+            if (selectedStudentIds.has(student.id)) {
                 card.classList.add('border-forest', 'bg-green-50', 'ring-1', 'ring-forest');
             }
 
             const title = document.createElement('span');
             title.className = 'block font-semibold text-ink';
-            title.textContent = student.name;
+            title.textContent = (selectedStudentIds.has(student.id) ? '✓ Selected · ' : '+ Select · ') + student.name;
 
             const details = document.createElement('span');
             details.className = 'block text-sm text-ink-soft mt-1';
@@ -216,7 +232,7 @@
             card.appendChild(title);
             card.appendChild(details);
             card.addEventListener('click', function () {
-                selectStudent(student, card);
+                toggleStudent(student);
             });
             results.appendChild(card);
         });
@@ -238,16 +254,19 @@
         searchClass.value = '';
         searchRoll.value = '';
         searchName.value = '';
-        studentId.value = '';
-        selectedSummary.textContent = '';
-        selectedSummary.classList.add('hidden');
+        renderResults();
+    });
+
+    clearSelectedButton.addEventListener('click', function () {
+        selectedStudentIds.clear();
+        updateSelectedStudents();
         renderResults();
     });
 
     document.getElementById('emergency-sms-form').addEventListener('submit', function (event) {
-        if (targetType.value === 'student' && !studentId.value) {
+        if (targetType.value === 'student' && selectedStudentIds.size === 0) {
             event.preventDefault();
-            alert('Please search for and select a student before sending the SMS.');
+            alert('Please search for and select at least one student before sending the SMS.');
             return;
         }
         const button = document.getElementById('send-emergency-sms');
@@ -263,6 +282,7 @@
     });
 
     updateTargetFields();
+    updateSelectedStudents();
     renderResults();
 })();
 </script>

@@ -3,7 +3,6 @@ import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
-from django.conf import settings
 
 from .models import Student
 from .sms_utils import append_school_name, send_sms
@@ -18,7 +17,7 @@ def _is_admin(user):
 @login_required
 @user_passes_test(_is_admin)
 def emergency_sms(request):
-    """Send an administrator-authored notice to all students, one class, or one student."""
+    """Send an administrator-authored notice to all students, one class, or selected students."""
     classes = list(
         Student.objects.exclude(class_name="")
         .values_list("class_name", flat=True)
@@ -28,7 +27,7 @@ def emergency_sms(request):
     students = Student.objects.order_by("class_name", "section", "roll_no")
     selected_class = request.POST.get("class_name", "") if request.method == "POST" else request.GET.get("class_name", "")
     target_type = request.POST.get("target_type", "all") if request.method == "POST" else request.GET.get("target_type", "all")
-    selected_student_id = request.POST.get("student_id", "") if request.method == "POST" else ""
+    selected_student_ids = request.POST.getlist("student_ids") if request.method == "POST" else []
 
     if request.method == "POST":
         message_text = request.POST.get("message", "").strip()
@@ -45,21 +44,23 @@ def emergency_sms(request):
                     messages.error(request, "Please choose a valid class.")
                     return render(request, "attendance/emergency_sms.html", {
                         "classes": classes, "students": students, "selected_class": selected_class,
-                        "target_type": target_type, "selected_student_id": selected_student_id,
+                        "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
                 recipients = recipients.filter(class_name=selected_class)
             elif target_type == "student":
-                try:
-                    student_id = int(selected_student_id)
-                except (TypeError, ValueError):
-                    student_id = None
-                recipients = recipients.filter(pk=student_id) if student_id else recipients.none()
-                if not recipients.exists():
-                    messages.error(request, "Please select a valid student.")
+                valid_ids = []
+                for value in selected_student_ids:
+                    try:
+                        valid_ids.append(int(value))
+                    except (TypeError, ValueError):
+                        continue
+                recipients = recipients.filter(pk__in=set(valid_ids))
+                if not valid_ids or not recipients.exists():
+                    messages.error(request, "Please search for and select at least one valid student.")
                     return render(request, "attendance/emergency_sms.html", {
                         "classes": classes, "students": students, "selected_class": selected_class,
-                        "target_type": target_type, "selected_student_id": selected_student_id,
+                        "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
 
@@ -92,6 +93,6 @@ def emergency_sms(request):
         "students": students,
         "selected_class": selected_class,
         "target_type": target_type if target_type in {"all", "class", "student"} else "all",
-        "selected_student_id": selected_student_id,
+        "selected_student_ids": selected_student_ids,
         "message_text": "",
     })
