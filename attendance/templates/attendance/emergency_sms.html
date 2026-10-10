@@ -121,7 +121,7 @@
     const selectedSummary = document.getElementById('selected-student-summary');
     const clearButton = document.getElementById('clear-student-search');
 
-    if (!targetType || !results || !studentId) return;
+    if (!targetType || !results || !selectedInputs) return;
 
     const students = [
         {% for student in students %}
