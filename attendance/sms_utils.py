@@ -7,6 +7,32 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+_GSM7_BASIC = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
+_GSM7_EXTENDED = "^{}\\[~]|€\f"
+
+
+def sms_segment_count(message):
+    """Estimate billable SMS segments using GSM-7/UCS-2 standard capacities."""
+    text = str(message or "")
+    septets = 0
+    is_gsm7 = True
+    for char in text:
+        if char in _GSM7_BASIC:
+            septets += 1
+        elif char in _GSM7_EXTENDED:
+            septets += 2
+        else:
+            is_gsm7 = False
+            break
+
+    if is_gsm7:
+        return 1 if septets <= 160 else (septets + 152) // 153
+
+    # SMS Unicode encoding is measured in UTF-16 code units (surrogate pairs count twice).
+    units = len(text.encode("utf-16-be")) // 2
+    return 1 if units <= 70 else (units + 66) // 67
+
+
 
 def append_school_name(base_message):
     """Append the configured short school name to every SMS."""
@@ -135,8 +161,8 @@ def send_sms(number, message):
         # Always log the raw provider response (success or failure) so it
         # can be cross-checked against the bdbulksms dashboard later.
         logger.info(
-            "SMS to %s -> success=%s status=%s response=%s",
-            normalized_number, is_success, response.status_code, response_text[:500],
+            "SMS to %s -> success=%s segments=%s status=%s response=%s",
+            normalized_number, is_success, sms_segment_count(message), response.status_code, response_text[:500],
         )
         return is_success, response.text
     except requests.RequestException as exc:
