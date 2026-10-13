@@ -32,6 +32,7 @@
             <div><div class="text-lg font-bold text-absent">{{ counts.student.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
             <div><div class="text-lg font-bold text-amber-600">{{ counts.student.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
         </div>
+        <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.student.segments }}</strong></div>
     </div>
     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · {{ month_str }}</div>
@@ -40,6 +41,7 @@
             <div><div class="text-lg font-bold text-absent">{{ counts.teacher.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
             <div><div class="text-lg font-bold text-amber-600">{{ counts.teacher.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
         </div>
+        <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.teacher.segments }}</strong></div>
     </div>
 </div>
 
