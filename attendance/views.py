@@ -1543,6 +1543,7 @@ def sms_status(request):
 
     counts = {
         'student': {
+            'segments': sum(AbsenceSms.objects.filter(date__year=year, date__month=month, status=AbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True)),
             'sent': AbsenceSms.objects.filter(
                 date__year=year, date__month=month, status=AbsenceSms.STATUS_SENT
             ).count(),
@@ -1554,6 +1555,7 @@ def sms_status(request):
             ).count(),
         },
         'teacher': {
+            'segments': sum(TeacherAbsenceSms.objects.filter(date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True)),
             'sent': TeacherAbsenceSms.objects.filter(
                 date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_SENT
             ).count(),
