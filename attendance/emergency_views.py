@@ -61,7 +61,7 @@ def emergency_sms(request):
                 if not valid_ids or not recipients.exists():
                     messages.error(request, "Please search for and select at least one valid student.")
                     return render(request, "attendance/emergency_sms.html", {
-                        "classes": classes, "students": students, "selected_class": selected_class,
+                        "classes": classes, "students": students, "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"), "selected_class": selected_class,
                         "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
