@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
 
 from .models import Student
-from .sms_utils import append_school_name, send_sms
+from .sms_utils import append_school_name, send_sms, sms_segment_count
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +70,14 @@ def emergency_sms(request):
             full_message = append_school_name(message_text)
             sent = 0
             failed = 0
+            billed_segments = 0
+            segments_per_message = sms_segment_count(full_message)
             for student in with_phone:
                 try:
                     success, _detail = send_sms(student.parent_mobile, full_message)
                     if success:
                         sent += 1
+                        billed_segments += segments_per_message
                     else:
                         failed += 1
                 except Exception:
@@ -84,7 +87,8 @@ def emergency_sms(request):
             messages.success(
                 request,
                 f"Emergency SMS finished: {sent} sent, {failed} failed, "
-                f"{missing_phone} skipped (no parent phone), {len(recipient_list)} student(s) targeted."
+                f"{missing_phone} skipped (no parent phone), {len(recipient_list)} student(s) targeted. "
+                f"Estimated SMS segments billed: {billed_segments}."
             )
             return redirect("emergency_sms")
 
