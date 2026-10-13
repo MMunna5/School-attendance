@@ -34,11 +34,28 @@ def sms_segment_count(message):
 
 
 
-def append_school_name(base_message):
-    """Append the configured short school name to every SMS."""
-    short_name = getattr(settings, 'SCHOOL_SHORT_NAME', 'School')
-    return f"{base_message}\n{short_name}"
+def sms_unit_count(message):
+    """Count GSM-7 septets or Unicode UTF-16 code units for the 159-unit rule."""
+    text = str(message or "")
+    septets = 0
+    for char in text:
+        if char in _GSM7_BASIC:
+            septets += 1
+        elif char in _GSM7_EXTENDED:
+            septets += 2
+        else:
+            return len(text.encode("utf-16-be")) // 2
+    return septets
 
+
+def append_school_name(base_message, short_if_over_159=True):
+    """Use full school name unless attendance SMS exceeds 159 SMS units."""
+    full_name = getattr(settings, 'SCHOOL_FULL_NAME', 'School')
+    short_name = getattr(settings, 'SCHOOL_SHORT_NAME', 'School')
+    full_message = f"{base_message}\n{full_name}"
+    if short_if_over_159 and sms_unit_count(full_message) > 159:
+        return f"{base_message}\n{short_name}"
+    return full_message
 
 def build_absent_message(student_name, date_str, roll_no=None, class_name=None):
     student_details = student_name
