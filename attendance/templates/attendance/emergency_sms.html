@@ -95,7 +95,7 @@
 
         <div>
             <label for="message" class="block text-sm font-semibold text-ink mb-2">Notice message</label>
-            <textarea id="message" data-school-name="{{ school_short_name|default:'School' }}" name="message" rows="5" maxlength="1000" required
+            <textarea id="message" data-school-name="{{ school_full_name|default:'School' }}" name="message" rows="5" maxlength="1000" required
                       class="w-full rounded-xl border border-gray-300 p-3 focus:border-forest focus:ring-1 focus:ring-forest"
                       placeholder="Write the notice you want to send to parents...">{{ message_text }}</textarea>
             <p class="text-xs text-ink-soft mt-1">Maximum 1000 characters. SMS charges depend on your SMS provider and message length.</p>
