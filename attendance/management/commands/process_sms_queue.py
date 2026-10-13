@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from attendance.models import AbsenceSms, TeacherAbsenceSms
-from attendance.sms_utils import build_absent_message, build_teacher_absent_message, send_sms
+from attendance.sms_utils import build_absent_message, build_teacher_absent_message, send_sms, sms_segment_count
 
 
 class Command(BaseCommand):
@@ -92,6 +92,8 @@ class Command(BaseCommand):
             roll_no=student.roll_no,
             class_name=student.class_name,
         )
+        segments = sms_segment_count(sms)
+        AbsenceSms.objects.filter(pk=message.pk).update(sms_segments=segments)
         try:
             success, response = send_sms(student.parent_mobile, sms)
         except Exception as exc:
@@ -129,6 +131,8 @@ class Command(BaseCommand):
             teacher.name,
             message.date.strftime('%d-%b-%y'),
         )
+        segments = sms_segment_count(sms)
+        TeacherAbsenceSms.objects.filter(pk=message.pk).update(sms_segments=segments)
         try:
             success, response = send_sms(teacher.mobile, sms)
         except Exception as exc:
