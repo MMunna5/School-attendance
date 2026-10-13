@@ -45,7 +45,7 @@ def emergency_sms(request):
                 if selected_class not in classes:
                     messages.error(request, "Please choose a valid class.")
                     return render(request, "attendance/emergency_sms.html", {
-                        "classes": classes, "students": students, "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"), "selected_class": selected_class,
+                        "classes": classes, "students": students, "school_full_name": getattr(settings, "SCHOOL_FULL_NAME", "School"), "selected_class": selected_class,
                         "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
@@ -61,7 +61,7 @@ def emergency_sms(request):
                 if not valid_ids or not recipients.exists():
                     messages.error(request, "Please search for and select at least one valid student.")
                     return render(request, "attendance/emergency_sms.html", {
-                        "classes": classes, "students": students, "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"), "selected_class": selected_class,
+                        "classes": classes, "students": students, "school_full_name": getattr(settings, "SCHOOL_FULL_NAME", "School"), "selected_class": selected_class,
                         "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
@@ -69,7 +69,7 @@ def emergency_sms(request):
             recipient_list = list(recipients)
             with_phone = [student for student in recipient_list if student.parent_mobile]
             missing_phone = len(recipient_list) - len(with_phone)
-            full_message = append_school_name(message_text)
+            full_message = append_school_name(message_text, short_if_over_159=False)
             sent = 0
             failed = 0
             billed_segments = 0
@@ -97,7 +97,7 @@ def emergency_sms(request):
     return render(request, "attendance/emergency_sms.html", {
         "classes": classes,
         "students": students,
-        "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"),
+        "school_full_name": getattr(settings, "SCHOOL_FULL_NAME", "School"),
         "selected_class": selected_class,
         "target_type": target_type if target_type in {"all", "class", "student"} else "all",
         "selected_student_ids": selected_student_ids,
