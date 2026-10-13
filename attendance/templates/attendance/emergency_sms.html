@@ -95,10 +95,11 @@
 
         <div>
             <label for="message" class="block text-sm font-semibold text-ink mb-2">Notice message</label>
-            <textarea id="message" name="message" rows="5" maxlength="1000" required
+            <textarea id="message" data-school-name="{{ school_short_name|default:'School' }}" name="message" rows="5" maxlength="1000" required
                       class="w-full rounded-xl border border-gray-300 p-3 focus:border-forest focus:ring-1 focus:ring-forest"
                       placeholder="Write the notice you want to send to parents...">{{ message_text }}</textarea>
             <p class="text-xs text-ink-soft mt-1">Maximum 1000 characters. SMS charges depend on your SMS provider and message length.</p>
+            <p id="sms-segment-preview" class="text-sm font-semibold text-forest mt-2" aria-live="polite"></p>
         </div>
 
         <button id="send-emergency-sms" type="submit" class="w-full sm:w-auto rounded-xl bg-forest text-white font-semibold px-6 py-3 hover:opacity-90">
@@ -109,6 +110,34 @@
 
 <script>
 (function () {
+
+    const smsMessageField = document.getElementById('message');
+    const smsPreview = document.getElementById('sms-segment-preview');
+    const gsmBasicChars = new Set(Array.from("@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\u001bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"));
+    const gsmExtendedChars = new Set(Array.from("^{}\\[~]|€\f"));
+    function countSmsSegments(text) {
+        let septets = 0;
+        let gsm7 = true;
+        for (const char of text) {
+            if (gsmBasicChars.has(char)) septets += 1;
+            else if (gsmExtendedChars.has(char)) septets += 2;
+            else { gsm7 = false; break; }
+        }
+        if (gsm7) return {encoding: 'GSM-7', units: septets, segments: septets <= 160 ? 1 : Math.ceil(septets / 153)};
+        const units = Array.from(text).reduce((n, char) => n + (char.codePointAt(0) > 0xFFFF ? 2 : 1), 0);
+        return {encoding: 'Unicode', units, segments: units <= 70 ? 1 : Math.ceil(units / 67)};
+    }
+    function refreshSmsPreview() {
+        if (!smsMessageField || !smsPreview) return;
+        const schoolName = smsMessageField.dataset.schoolName || 'School';
+        const fullMessage = smsMessageField.value + '\n' + schoolName;
+        const count = countSmsSegments(fullMessage);
+        smsPreview.textContent = 'Estimated SMS segments per recipient: ' + count.segments + ' (' + count.encoding + ', ' + count.units + ' units, including school name). Provider billing may vary.';
+    }
+    if (smsMessageField) {
+        smsMessageField.addEventListener('input', refreshSmsPreview);
+        refreshSmsPreview();
+    }
     const targetType = document.getElementById('target_type');
     const classField = document.getElementById('class-field');
     const studentField = document.getElementById('student-field');
