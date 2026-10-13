@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
@@ -43,7 +45,7 @@ def emergency_sms(request):
                 if selected_class not in classes:
                     messages.error(request, "Please choose a valid class.")
                     return render(request, "attendance/emergency_sms.html", {
-                        "classes": classes, "students": students, "selected_class": selected_class,
+                        "classes": classes, "students": students, "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"), "selected_class": selected_class,
                         "target_type": target_type, "selected_student_ids": selected_student_ids,
                         "message_text": message_text,
                     })
@@ -95,6 +97,7 @@ def emergency_sms(request):
     return render(request, "attendance/emergency_sms.html", {
         "classes": classes,
         "students": students,
+        "school_short_name": getattr(settings, "SCHOOL_SHORT_NAME", "School"),
         "selected_class": selected_class,
         "target_type": target_type if target_type in {"all", "class", "student"} else "all",
         "selected_student_ids": selected_student_ids,
