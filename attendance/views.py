@@ -1697,6 +1697,7 @@ def sms_status(request):
         'monthly_rows': monthly_rows,
         'year_options': year_options,
         'all_months': all_months,
+        'show_monthly_billing': show_monthly_billing,
     })
 
 def _viewer_allowed_classes(user):
