@@ -80,7 +80,11 @@ def emergency_sms(request):
                     if success:
                         sent += 1
                         billed_segments += segments_per_message
-                        EmergencySmsLog.objects.create(sms_segments=segments_per_message)
+                        try:
+                            EmergencySmsLog.objects.create(sms_segments=segments_per_message)
+                        except Exception:
+                            # Do not misreport a successfully delivered SMS if only logging fails.
+                            logger.exception("Could not save emergency SMS log for student id=%s", student.pk)
                     else:
                         failed += 1
                 except Exception:
