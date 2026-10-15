@@ -56,12 +56,12 @@
         <button type="submit" name="all_months" value="1" class="bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:opacity-90 transition">Full Year</button>
         <a href="?year={{ current_year }}&months={{ current_month }}" class="border border-gray-300 text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-gray-50 transition">Running Month</a>
     </div>
-    <div class="text-xs font-semibold text-ink-soft mb-2">Select one or multiple months. With no month selected, the current year defaults to this month; another year defaults to the full year.</div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+    <div class="text-xs font-semibold text-ink-soft mb-2">মাস বাছাই করতে মাসের নামের ওপর ক্লিক করো। একাধিক মাসও বাছাই করা যাবে।</div>
+    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
         {% for row in monthly_rows %}
-        <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
-            <input type="checkbox" name="months" value="{{ row.number }}" {% if row.number in selected_months and not all_months %}checked{% endif %} class="rounded border-gray-300">
-            <span>{{ row.label }}</span>
+        <label class="cursor-pointer">
+            <input type="checkbox" name="months" value="{{ row.number }}" {% if row.number in selected_months and not all_months %}checked{% endif %} class="peer sr-only">
+            <span class="flex items-center justify-center rounded-lg border border-gray-200 px-2 py-2 text-sm font-semibold text-ink-soft hover:border-forest hover:bg-gray-50 peer-checked:border-forest peer-checked:bg-forest peer-checked:text-white transition">{{ row.label|slice:":3" }}</span>
         </label>
         {% endfor %}
     </div>
