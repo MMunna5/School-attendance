@@ -1515,10 +1515,7 @@ def correct_attendance(request, student_id):
 @login_required
 @user_passes_test(is_admin)
 def sms_status(request):
-    """
-    Admin-only SMS queue status with sent/failed/pending counts for a
-    selectable month. Failed and pending lists remain available for retry.
-    """
+    """SMS delivery status plus billing-friendly all-time, current-month and year/month reports."""
     if request.method == 'POST':
         action = request.POST.get('action')
         kind = request.POST.get('kind')
@@ -1531,46 +1528,122 @@ def sms_status(request):
             )
         return redirect('sms_status')
 
-    # Lifetime successful message totals across student, teacher, and emergency SMS.
+    today_local = local_today()
+    current_year = today_local.year
+    current_month = today_local.month
+
+    # Select a year and one or more months. If no filter is supplied, show this month.
+    try:
+        selected_year = int(request.GET.get('year', current_year))
+        if selected_year < 2000 or selected_year > current_year + 1:
+            raise ValueError
+    except (ValueError, TypeError):
+        selected_year = current_year
+
+    raw_months = request.GET.getlist('months')
+    all_months = request.GET.get('all_months') == '1'
+    selected_months = []
+    if all_months:
+        selected_months = list(range(1, 13))
+    else:
+        for value in raw_months:
+            try:
+                month_value = int(value)
+                if 1 <= month_value <= 12 and month_value not in selected_months:
+                    selected_months.append(month_value)
+            except (ValueError, TypeError):
+                continue
+        if not selected_months:
+            selected_months = [current_month if selected_year == current_year else 1]
+    selected_months.sort()
+
+    month_names = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+    ]
+
+    def sms_totals_for_months(month_numbers, year_value):
+        student_sent_qs = AbsenceSms.objects.filter(
+            status=AbsenceSms.STATUS_SENT,
+            sent_at__year=year_value,
+            sent_at__month__in=month_numbers,
+        )
+        teacher_sent_qs = TeacherAbsenceSms.objects.filter(
+            status=TeacherAbsenceSms.STATUS_SENT,
+            sent_at__year=year_value,
+            sent_at__month__in=month_numbers,
+        )
+        emergency_qs = EmergencySmsLog.objects.filter(
+            created_at__year=year_value,
+            created_at__month__in=month_numbers,
+        )
+        student_segments = sum(student_sent_qs.values_list('sms_segments', flat=True))
+        teacher_segments = sum(teacher_sent_qs.values_list('sms_segments', flat=True))
+        emergency_segments = sum(emergency_qs.values_list('sms_segments', flat=True))
+        student_count = student_sent_qs.count()
+        teacher_count = teacher_sent_qs.count()
+        emergency_count = emergency_qs.count()
+        return {
+            'student': student_count,
+            'teacher': teacher_count,
+            'emergency': emergency_count,
+            'total': student_count + teacher_count + emergency_count,
+            'segments': student_segments + teacher_segments + emergency_segments,
+            'student_segments': student_segments,
+            'teacher_segments': teacher_segments,
+            'emergency_segments': emergency_segments,
+        }
+
     all_time_student_sent = AbsenceSms.objects.filter(status=AbsenceSms.STATUS_SENT).count()
     all_time_teacher_sent = TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_SENT).count()
     all_time_emergency_sent = EmergencySmsLog.objects.count()
     all_time_total_sent = all_time_student_sent + all_time_teacher_sent + all_time_emergency_sent
+    all_time_segments = (
+        sum(AbsenceSms.objects.filter(status=AbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True))
+        + sum(TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True))
+        + sum(EmergencySmsLog.objects.values_list('sms_segments', flat=True))
+    )
 
-    # Match the Laravel implementation: default to the current Bangladesh month.
-    month_str = (request.GET.get('month') or '').strip()
-    try:
-        year, month = map(int, month_str.split('-'))
-        datetime.date(year, month, 1)  # validates year/month
-    except (ValueError, TypeError):
-        today_local = local_today()
-        year, month = today_local.year, today_local.month
-        month_str = f"{year:04d}-{month:02d}"
+    current_month_totals = sms_totals_for_months([current_month], current_year)
+    selected_totals = sms_totals_for_months(selected_months, selected_year)
+    monthly_rows = []
+    for month_number, month_label in enumerate(month_names, start=1):
+        month_total = sms_totals_for_months([month_number], selected_year)
+        monthly_rows.append({
+            'number': month_number,
+            'label': month_label,
+            'total': month_total['total'],
+            'student': month_total['student'],
+            'teacher': month_total['teacher'],
+            'emergency': month_total['emergency'],
+            'segments': month_total['segments'],
+            'selected': month_number in selected_months,
+        })
+
+    selected_month_labels = ', '.join(month_names[m - 1] for m in selected_months)
+    year_options = list(range(max(2020, current_year - 5), current_year + 2))
+
+    # Queue statuses are grouped by the month the queue record was created; sent billing totals
+    # above are grouped by actual send timestamp (sent_at), not attendance date.
+    def queue_counts(model, status, month_numbers, year_value):
+        return model.objects.filter(
+            status=status,
+            created_at__year=year_value,
+            created_at__month__in=month_numbers,
+        ).count()
 
     counts = {
         'student': {
-            'segments': sum(AbsenceSms.objects.filter(date__year=year, date__month=month, status=AbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True)),
-            'sent': AbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=AbsenceSms.STATUS_SENT
-            ).count(),
-            'failed': AbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=AbsenceSms.STATUS_FAILED
-            ).count(),
-            'pending': AbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=AbsenceSms.STATUS_PENDING
-            ).count(),
+            'sent': selected_totals['student'],
+            'failed': queue_counts(AbsenceSms, AbsenceSms.STATUS_FAILED, selected_months, selected_year),
+            'pending': queue_counts(AbsenceSms, AbsenceSms.STATUS_PENDING, selected_months, selected_year),
+            'segments': selected_totals['student_segments'],
         },
         'teacher': {
-            'segments': sum(TeacherAbsenceSms.objects.filter(date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True)),
-            'sent': TeacherAbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_SENT
-            ).count(),
-            'failed': TeacherAbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_FAILED
-            ).count(),
-            'pending': TeacherAbsenceSms.objects.filter(
-                date__year=year, date__month=month, status=TeacherAbsenceSms.STATUS_PENDING
-            ).count(),
+            'sent': selected_totals['teacher'],
+            'failed': queue_counts(TeacherAbsenceSms, TeacherAbsenceSms.STATUS_FAILED, selected_months, selected_year),
+            'pending': queue_counts(TeacherAbsenceSms, TeacherAbsenceSms.STATUS_PENDING, selected_months, selected_year),
+            'segments': selected_totals['teacher_segments'],
         },
     }
 
@@ -1600,12 +1673,23 @@ def sms_status(request):
         'student_pending': student_pending,
         'teacher_failed': teacher_failed,
         'teacher_pending': teacher_pending,
-        'month_str': month_str,
         'counts': counts,
+        'current_year': current_year,
+        'current_month': current_month,
+        'current_month_label': month_names[current_month - 1],
+        'current_month_totals': current_month_totals,
         'all_time_total_sent': all_time_total_sent,
         'all_time_student_sent': all_time_student_sent,
         'all_time_teacher_sent': all_time_teacher_sent,
         'all_time_emergency_sent': all_time_emergency_sent,
+        'all_time_segments': all_time_segments,
+        'selected_year': selected_year,
+        'selected_months': selected_months,
+        'selected_month_labels': selected_month_labels,
+        'selected_totals': selected_totals,
+        'monthly_rows': monthly_rows,
+        'year_options': year_options,
+        'all_months': all_months,
     })
 
 def _viewer_allowed_classes(user):
