@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
 
-from .models import Student
+from .models import EmergencySmsLog, Student
 from .sms_utils import append_school_name, send_sms, sms_segment_count
 
 logger = logging.getLogger(__name__)
@@ -80,6 +80,7 @@ def emergency_sms(request):
                     if success:
                         sent += 1
                         billed_segments += segments_per_message
+                        EmergencySmsLog.objects.create(sms_segments=segments_per_message)
                     else:
                         failed += 1
                 except Exception:
