@@ -12,6 +12,8 @@
     </svg>
     Dashboard
 </a>
+</details>
+
 {% endblock %}
 
 {% block content %}
@@ -126,8 +128,10 @@
     </div>
 </div>
 
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS — Failed
-    ({{ student_failed|length }})</div>
+<details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
+        <span>Student SMS — Failed <span class="ml-1 text-ink-soft">({{ student_failed|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+    </summary>
 {% if student_failed %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
     {% for m in student_failed %}
@@ -157,8 +161,13 @@
 <div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">No failed student SMS. 🎉</div>
 {% endif %}
 
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS — Pending
-    ({{ student_pending|length }})</div>
+
+</details>
+
+<details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
+        <span>Student SMS — Pending <span class="ml-1 text-ink-soft">({{ student_pending|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+    </summary>
 {% if student_pending %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
     {% for m in student_pending %}
@@ -179,8 +188,13 @@
 <div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">Queue is empty.</div>
 {% endif %}
 
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS — Failed
-    ({{ teacher_failed|length }})</div>
+
+</details>
+
+<details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
+        <span>Teacher SMS — Failed <span class="ml-1 text-ink-soft">({{ teacher_failed|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+    </summary>
 {% if teacher_failed %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
     {% for m in teacher_failed %}
@@ -207,8 +221,13 @@
 <div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">No failed teacher SMS. 🎉</div>
 {% endif %}
 
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS — Pending
-    ({{ teacher_pending|length }})</div>
+
+</details>
+
+<details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
+        <span>Teacher SMS — Pending <span class="ml-1 text-ink-soft">({{ teacher_pending|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+    </summary>
 {% if teacher_pending %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
     {% for m in teacher_pending %}
