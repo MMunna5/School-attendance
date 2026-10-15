@@ -1554,7 +1554,11 @@ def sms_status(request):
             except (ValueError, TypeError):
                 continue
         if not selected_months:
-            selected_months = [current_month if selected_year == current_year else 1]
+            if selected_year == current_year:
+                selected_months = [current_month]
+            else:
+                selected_months = list(range(1, 13))
+                all_months = True
     selected_months.sort()
 
     month_names = [
