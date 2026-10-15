@@ -139,3 +139,16 @@ class TeacherAttendance(models.Model):
     def __str__(self):
         status = "Present" if self.is_present else "Absent"
         return f"{self.teacher.name} - {self.date} - {status}"
+
+
+class EmergencySmsLog(models.Model):
+    """One record for each successfully sent emergency SMS recipient."""
+
+    sms_segments = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Emergency SMS sent ({self.sms_segments} segment(s))"
