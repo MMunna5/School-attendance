@@ -96,10 +96,12 @@
             </thead>
             <tbody>
                 {% for row in monthly_rows %}
+                {% if all_months or row.number in selected_months %}
                 <tr class="border-t border-gray-100 {% if row.selected %}bg-forest/5 font-semibold{% endif %}">
                     <td class="px-4 py-3 whitespace-nowrap">{{ row.label }}{% if row.number == current_month and selected_year == current_year %} <span class="text-[10px] text-amber-700">(Running)</span>{% endif %}</td>
                     <td class="px-4 py-3 text-right">{{ row.student }}</td><td class="px-4 py-3 text-right">{{ row.teacher }}</td><td class="px-4 py-3 text-right">{{ row.emergency }}</td><td class="px-4 py-3 text-right font-bold">{{ row.total }}</td><td class="px-4 py-3 text-right">{{ row.segments }}</td>
                 </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
