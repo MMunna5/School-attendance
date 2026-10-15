@@ -13,7 +13,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count
 import time
 from django.conf import settings
-from .models import AbsenceSms, TeacherAbsenceSms, Teacher, Student, Attendance, TeacherAttendance
+from .models import AbsenceSms, TeacherAbsenceSms, EmergencySmsLog, Teacher, Student, Attendance, TeacherAttendance
 from django.urls import reverse
 from .sms_utils import (
     build_absent_message,
@@ -1531,6 +1531,12 @@ def sms_status(request):
             )
         return redirect('sms_status')
 
+    # Lifetime successful message totals across student, teacher, and emergency SMS.
+    all_time_student_sent = AbsenceSms.objects.filter(status=AbsenceSms.STATUS_SENT).count()
+    all_time_teacher_sent = TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_SENT).count()
+    all_time_emergency_sent = EmergencySmsLog.objects.count()
+    all_time_total_sent = all_time_student_sent + all_time_teacher_sent + all_time_emergency_sent
+
     # Match the Laravel implementation: default to the current Bangladesh month.
     month_str = (request.GET.get('month') or '').strip()
     try:
@@ -1596,6 +1602,10 @@ def sms_status(request):
         'teacher_pending': teacher_pending,
         'month_str': month_str,
         'counts': counts,
+        'all_time_total_sent': all_time_total_sent,
+        'all_time_student_sent': all_time_student_sent,
+        'all_time_teacher_sent': all_time_teacher_sent,
+        'all_time_emergency_sent': all_time_emergency_sent,
     })
 
 def _viewer_allowed_classes(user):
