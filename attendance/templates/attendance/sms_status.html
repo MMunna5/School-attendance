@@ -16,36 +16,96 @@
 
 {% block content %}
 
-<div class="bg-forest-deep text-white rounded-2xl p-6 sm:p-8 mb-6 shadow-md">
-    <div class="text-xs sm:text-sm font-bold tracking-widest uppercase text-white/75 mb-2">Total SMS Sent · All Time</div>
-    <div class="text-5xl sm:text-6xl font-extrabold leading-none mb-5">{{ all_time_total_sent }}</div>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="rounded-xl bg-white/10 px-4 py-3">
-            <div class="text-2xl font-bold">{{ all_time_student_sent }}</div>
-            <div class="text-xs text-white/75">Student absence SMS</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+    <div class="bg-forest-deep text-white rounded-2xl p-6 sm:p-8 shadow-md">
+        <div class="text-xs sm:text-sm font-bold tracking-widest uppercase text-white/75 mb-2">Grand Total · All Time</div>
+        <div class="text-5xl sm:text-6xl font-extrabold leading-none mb-3">{{ all_time_total_sent }}</div>
+        <div class="text-sm text-white/80 mb-5">Successfully sent SMS messages</div>
+        <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-xl bg-white/10 px-3 py-3"><div class="text-2xl font-bold">{{ all_time_student_sent }}</div><div class="text-[11px] text-white/75">Student</div></div>
+            <div class="rounded-xl bg-white/10 px-3 py-3"><div class="text-2xl font-bold">{{ all_time_teacher_sent }}</div><div class="text-[11px] text-white/75">Teacher</div></div>
+            <div class="rounded-xl bg-white/10 px-3 py-3"><div class="text-2xl font-bold">{{ all_time_emergency_sent }}</div><div class="text-[11px] text-white/75">Emergency</div></div>
         </div>
-        <div class="rounded-xl bg-white/10 px-4 py-3">
-            <div class="text-2xl font-bold">{{ all_time_teacher_sent }}</div>
-            <div class="text-xs text-white/75">Teacher absence SMS</div>
+        <div class="mt-4 border-t border-white/20 pt-3 text-sm">Estimated billable SMS segments: <strong class="text-lg">{{ all_time_segments }}</strong></div>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="text-xs sm:text-sm font-bold tracking-widest uppercase text-amber-800 mb-2">Running Month · {{ current_month_label }} {{ current_year }}</div>
+        <div class="text-5xl sm:text-6xl font-extrabold leading-none text-amber-950 mb-3">{{ current_month_totals.total }}</div>
+        <div class="text-sm text-amber-800 mb-5">Successfully sent SMS messages this month</div>
+        <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.student }}</div><div class="text-[11px] text-amber-800">Student</div></div>
+            <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.teacher }}</div><div class="text-[11px] text-amber-800">Teacher</div></div>
+            <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.emergency }}</div><div class="text-[11px] text-amber-800">Emergency</div></div>
         </div>
-        <div class="rounded-xl bg-white/10 px-4 py-3">
-            <div class="text-2xl font-bold">{{ all_time_emergency_sent }}</div>
-            <div class="text-xs text-white/75">Emergency SMS</div>
-        </div>
+        <div class="mt-4 border-t border-amber-200 pt-3 text-sm text-amber-900">Estimated billable SMS segments: <strong class="text-lg">{{ current_month_totals.segments }}</strong></div>
     </div>
 </div>
 
-<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
-    <div>
-        <label for="sms-month" class="block text-xs font-semibold text-ink-soft mb-1.5">Month</label>
-        <input id="sms-month" type="month" name="month" value="{{ month_str }}" class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="flex flex-wrap gap-3 items-end mb-4">
+        <div>
+            <label for="sms-year" class="block text-xs font-semibold text-ink-soft mb-1.5">Year</label>
+            <select id="sms-year" name="year" class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+                {% for year_value in year_options %}
+                <option value="{{ year_value }}" {% if year_value == selected_year %}selected{% endif %}>{{ year_value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="bg-forest text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-forest-deep transition">View Selected Months</button>
+        <button type="submit" name="all_months" value="1" class="bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:opacity-90 transition">Full Year</button>
+        <a href="?year={{ current_year }}&months={{ current_month }}" class="border border-gray-300 text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-gray-50 transition">Running Month</a>
     </div>
-    <button type="submit" class="bg-forest text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-forest-deep transition">View Month</button>
+    <div class="text-xs font-semibold text-ink-soft mb-2">Select one or multiple months (leave all unchecked to default to the current month)</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        {% for row in monthly_rows %}
+        <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+            <input type="checkbox" name="months" value="{{ row.number }}" {% if row.number in selected_months and not all_months %}checked{% endif %} class="rounded border-gray-300">
+            <span>{{ row.label }}</span>
+        </label>
+        {% endfor %}
+    </div>
 </form>
+
+<div class="bg-white border border-gray-200 rounded-xl p-5 mb-5 shadow-sm">
+    <div class="text-xs font-bold tracking-widest uppercase text-ink-soft mb-1">Selected Period · {{ selected_year }}</div>
+    <div class="text-sm text-ink-soft mb-4">{{ selected_month_labels }}</div>
+    <div class="text-4xl font-extrabold text-forest-deep mb-4">{{ selected_totals.total }} <span class="text-sm font-semibold text-ink-soft">SMS messages sent</span></div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.student }}</div><div class="text-xs text-ink-soft">Student SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.student_segments }} segments</div></div>
+        <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.teacher }}</div><div class="text-xs text-ink-soft">Teacher SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.teacher_segments }} segments</div></div>
+        <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.emergency }}</div><div class="text-xs text-ink-soft">Emergency SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.emergency_segments }} segments</div></div>
+        <div class="rounded-xl bg-forest/10 p-3"><div class="text-2xl font-extrabold text-forest-deep">{{ selected_totals.segments }}</div><div class="text-xs text-ink-soft">Total billable segments</div><div class="text-xs text-ink-soft mt-1">Estimated billing units</div></div>
+    </div>
+</div>
+
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
+    <div class="px-4 py-4 border-b border-gray-200">
+        <h2 class="font-bold text-forest-deep">Month-wise SMS Billing · {{ selected_year }}</h2>
+        <p class="text-xs text-ink-soft mt-1">Successful SMS messages and estimated billable segments, split by the month the SMS was sent.</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-ink-soft text-xs uppercase">
+                <tr>
+                    <th class="text-left px-4 py-3">Month</th><th class="text-right px-4 py-3">Student</th><th class="text-right px-4 py-3">Teacher</th><th class="text-right px-4 py-3">Emergency</th><th class="text-right px-4 py-3">Total SMS</th><th class="text-right px-4 py-3">Billable segments</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in monthly_rows %}
+                <tr class="border-t border-gray-100 {% if row.selected %}bg-forest/5 font-semibold{% endif %}">
+                    <td class="px-4 py-3 whitespace-nowrap">{{ row.label }}{% if row.number == current_month and selected_year == current_year %} <span class="text-[10px] text-amber-700">(Running)</span>{% endif %}</td>
+                    <td class="px-4 py-3 text-right">{{ row.student }}</td><td class="px-4 py-3 text-right">{{ row.teacher }}</td><td class="px-4 py-3 text-right">{{ row.emergency }}</td><td class="px-4 py-3 text-right font-bold">{{ row.total }}</td><td class="px-4 py-3 text-right">{{ row.segments }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS · {{ month_str }}</div>
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS · Selected Period</div>
         <div class="grid grid-cols-3 gap-2 text-center">
             <div><div class="text-lg font-bold text-present">{{ counts.student.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
             <div><div class="text-lg font-bold text-absent">{{ counts.student.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
@@ -54,7 +114,7 @@
         <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.student.segments }}</strong></div>
     </div>
     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · {{ month_str }}</div>
+        <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · Selected Period</div>
         <div class="grid grid-cols-3 gap-2 text-center">
             <div><div class="text-lg font-bold text-present">{{ counts.teacher.sent }}</div><div class="text-[10px] text-ink-soft">Sent</div></div>
             <div><div class="text-lg font-bold text-absent">{{ counts.teacher.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
@@ -63,7 +123,6 @@
         <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.teacher.segments }}</strong></div>
     </div>
 </div>
-
 
 <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Student SMS — Failed
     ({{ student_failed|length }})</div>
