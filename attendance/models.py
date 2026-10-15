@@ -111,6 +111,7 @@ class TeacherAbsenceSms(models.Model):
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     attempts = models.PositiveIntegerField(default=0)
+    sms_segments = models.PositiveIntegerField(default=1, help_text='Estimated billable SMS segments for this message.')
     next_attempt_at = models.DateTimeField(null=True, blank=True)
     last_error = models.TextField(blank=True, default='')
     sent_at = models.DateTimeField(null=True, blank=True)
