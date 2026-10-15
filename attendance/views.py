@@ -1542,6 +1542,9 @@ def sms_status(request):
 
     raw_months = request.GET.getlist('months')
     all_months = request.GET.get('all_months') == '1'
+    # Keep the month-wise billing table hidden on the initial page load.
+    # Show it only after the user explicitly selects month(s) or Full Year.
+    show_monthly_billing = bool(raw_months) or all_months
     selected_months = []
     if all_months:
         selected_months = list(range(1, 13))
