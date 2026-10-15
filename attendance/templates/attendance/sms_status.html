@@ -69,6 +69,7 @@
     </div>
 </form>
 
+{% if show_monthly_billing %}
 <div class="bg-white border border-gray-200 rounded-xl p-5 mb-5 shadow-sm">
     <div class="text-xs font-bold tracking-widest uppercase text-ink-soft mb-1">Selected Period · {{ selected_year }}</div>
     <div class="text-sm text-ink-soft mb-4">{{ selected_month_labels }}</div>
@@ -80,6 +81,7 @@
         <div class="rounded-xl bg-forest/10 p-3"><div class="text-2xl font-extrabold text-forest-deep">{{ selected_totals.segments }}</div><div class="text-xs text-ink-soft">Total billable segments</div><div class="text-xs text-ink-soft mt-1">Estimated billing units</div></div>
     </div>
 </div>
+{% endif %}
 
 {% if show_monthly_billing %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
