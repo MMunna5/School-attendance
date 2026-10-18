@@ -1522,14 +1522,16 @@ def sms_status(request):
         message_id = request.POST.get('id')
         model = AbsenceSms if kind == 'student' else TeacherAbsenceSms
         if action == 'retry_all':
-            AbsenceSms.objects.filter(status=AbsenceSms.STATUS_FAILED).update(
-                status=AbsenceSms.STATUS_PENDING,
-                next_attempt_at=None,
-            )
-            TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_FAILED).update(
-                status=TeacherAbsenceSms.STATUS_PENDING,
-                next_attempt_at=None,
-            )
+            if kind == 'student':
+                AbsenceSms.objects.filter(status=AbsenceSms.STATUS_FAILED).update(
+                    status=AbsenceSms.STATUS_PENDING,
+                    next_attempt_at=None,
+                )
+            elif kind == 'teacher':
+                TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_FAILED).update(
+                    status=TeacherAbsenceSms.STATUS_PENDING,
+                    next_attempt_at=None,
+                )
         elif action == 'retry':
             model.objects.filter(pk=message_id, status=model.STATUS_FAILED).update(
                 status=model.STATUS_PENDING,
