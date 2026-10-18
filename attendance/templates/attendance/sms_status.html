@@ -18,6 +18,18 @@
 
 {% block content %}
 
+{% if student_failed or teacher_failed %}
+<form method="post" class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="retry_all">
+    <div>
+        <div class="font-bold text-ink">Retry All Failed SMS</div>
+        <div class="text-xs text-ink-soft">All failed student and teacher SMS will be queued again.</div>
+    </div>
+    <button type="submit" onclick="return confirm('Retry all failed student and teacher SMS?')" class="bg-gold text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:opacity-90 transition">Retry All Failed</button>
+</form>
+{% endif %}
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <div class="bg-forest-deep text-white rounded-2xl p-6 sm:p-8 shadow-md">
         <div class="text-xs sm:text-sm font-bold tracking-widest uppercase text-white/75 mb-2">Grand Total · All Time</div>
