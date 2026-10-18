@@ -18,17 +18,8 @@
 
 {% block content %}
 
-{% if student_failed or teacher_failed %}
-<form method="post" class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="retry_all">
-    <div>
-        <div class="font-bold text-ink">Retry All Failed SMS</div>
-        <div class="text-xs text-ink-soft">All failed student and teacher SMS will be queued again.</div>
-    </div>
-    <button type="submit" onclick="return confirm('Retry all failed student and teacher SMS?')" class="bg-gold text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:opacity-90 transition">Retry All Failed</button>
-</form>
-{% endif %}
+<form id="retry-all-student" method="post" class="hidden">{% csrf_token %}<input type="hidden" name="action" value="retry_all"><input type="hidden" name="kind" value="student"></form>
+<form id="retry-all-teacher" method="post" class="hidden">{% csrf_token %}<input type="hidden" name="action" value="retry_all"><input type="hidden" name="kind" value="teacher"></form>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <div class="bg-forest-deep text-white rounded-2xl p-6 sm:p-8 shadow-md">
@@ -146,7 +137,11 @@
 
 <details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
     <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
-        <span>Student SMS — Failed <span class="ml-1 text-ink-soft">({{ student_failed|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+        <span>Student SMS — Failed <span class="ml-1 text-ink-soft">({{ student_failed|length }})</span></span>
+        <span class="flex items-center gap-2">
+            {% if student_failed %}<button type="submit" form="retry-all-student" onclick="return confirm('Retry all failed student SMS?')" class="bg-gold text-white text-xs font-bold px-3 py-2 rounded-lg">Retry All Student</button>{% endif %}
+            <span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+        </span>
     </summary>
 {% if student_failed %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
@@ -209,7 +204,11 @@
 
 <details class="bg-white border border-gray-200 rounded-xl mb-3 shadow-sm group">
     <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-deep hover:bg-gray-50 rounded-xl">
-        <span>Teacher SMS — Failed <span class="ml-1 text-ink-soft">({{ teacher_failed|length }})</span></span><span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+        <span>Teacher SMS — Failed <span class="ml-1 text-ink-soft">({{ teacher_failed|length }})</span></span>
+        <span class="flex items-center gap-2">
+            {% if teacher_failed %}<button type="submit" form="retry-all-teacher" onclick="return confirm('Retry all failed teacher SMS?')" class="bg-gold text-white text-xs font-bold px-3 py-2 rounded-lg">Retry All Teacher</button>{% endif %}
+            <span class="text-xs text-ink-soft group-open:rotate-180 transition-transform">▼</span>
+        </span>
     </summary>
 {% if teacher_failed %}
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
