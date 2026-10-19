@@ -1635,6 +1635,7 @@ def sms_status(request):
             'teacher': month_total['teacher'],
             'emergency': month_total['emergency'],
             'segments': month_total['segments'],
+            'billable_total': month_total['segments'],
             'selected': month_number in selected_months,
         })
 
