@@ -31,7 +31,7 @@
             <div class="rounded-xl bg-white/10 px-3 py-3"><div class="text-2xl font-bold">{{ all_time_teacher_sent }}</div><div class="text-[11px] text-white/75">Teacher</div></div>
             <div class="rounded-xl bg-white/10 px-3 py-3"><div class="text-2xl font-bold">{{ all_time_emergency_sent }}</div><div class="text-[11px] text-white/75">Emergency</div></div>
         </div>
-        <div class="mt-4 border-t border-white/20 pt-3 text-sm">Estimated billable SMS segments: <strong class="text-lg">{{ all_time_segments }}</strong></div>
+        <div class="mt-4 border-t border-white/20 pt-3 text-sm">Billable SMS segments: <strong class="text-lg">{{ all_time_segments }}</strong></div>
     </div>
 
     <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 shadow-sm">
@@ -43,7 +43,7 @@
             <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.teacher }}</div><div class="text-[11px] text-amber-800">Teacher</div></div>
             <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.emergency }}</div><div class="text-[11px] text-amber-800">Emergency</div></div>
         </div>
-        <div class="mt-4 border-t border-amber-200 pt-3 text-sm text-amber-900">Estimated billable SMS segments: <strong class="text-lg">{{ current_month_totals.segments }}</strong></div>
+        <div class="mt-4 border-t border-amber-200 pt-3 text-sm text-amber-900">Billable SMS segments: <strong class="text-lg">{{ current_month_totals.segments }}</strong></div>
     </div>
 </div>
 
@@ -122,7 +122,7 @@
             <div><div class="text-lg font-bold text-absent">{{ counts.student.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
             <div><div class="text-lg font-bold text-amber-600">{{ counts.student.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
         </div>
-        <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.student.segments }}</strong></div>
+        <div class="text-xs text-ink-soft mt-3">Billable SMS segments: <strong>{{ counts.student.segments }}</strong></div>
     </div>
     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Teacher SMS · Selected Period</div>
@@ -131,7 +131,7 @@
             <div><div class="text-lg font-bold text-absent">{{ counts.teacher.failed }}</div><div class="text-[10px] text-ink-soft">Failed</div></div>
             <div><div class="text-lg font-bold text-amber-600">{{ counts.teacher.pending }}</div><div class="text-[10px] text-ink-soft">Pending</div></div>
         </div>
-        <div class="text-xs text-ink-soft mt-3">Estimated billable SMS segments: <strong>{{ counts.teacher.segments }}</strong></div>
+        <div class="text-xs text-ink-soft mt-3">Billable SMS segments: <strong>{{ counts.teacher.segments }}</strong></div>
     </div>
 </div>
 
