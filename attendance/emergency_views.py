@@ -95,7 +95,7 @@ def emergency_sms(request):
                 request,
                 f"Emergency SMS finished: {sent} sent, {failed} failed, "
                 f"{missing_phone} skipped (no parent phone), {len(recipient_list)} student(s) targeted. "
-                f"Estimated SMS segments billed: {billed_segments}."
+                f"Billable SMS segments (including school name): {billed_segments}."
             )
             return redirect("emergency_sms")
 
