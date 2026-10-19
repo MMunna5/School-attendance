@@ -36,8 +36,8 @@
 
     <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div class="text-xs sm:text-sm font-bold tracking-widest uppercase text-amber-800 mb-2">Running Month · {{ current_month_label }} {{ current_year }}</div>
-        <div class="text-5xl sm:text-6xl font-extrabold leading-none text-amber-950 mb-3">{{ current_month_totals.total }}</div>
-        <div class="text-sm text-amber-800 mb-5">Successfully sent SMS messages this month</div>
+        <div class="text-5xl sm:text-6xl font-extrabold leading-none text-amber-950 mb-3">{{ current_month_totals.segments }}</div>
+        <div class="text-sm text-amber-800 mb-5">Billable SMS segments this month</div>
         <div class="grid grid-cols-3 gap-2">
             <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.student }}</div><div class="text-[11px] text-amber-800">Student</div></div>
             <div class="rounded-xl bg-white/80 px-3 py-3"><div class="text-2xl font-bold text-amber-950">{{ current_month_totals.teacher }}</div><div class="text-[11px] text-amber-800">Teacher</div></div>
@@ -81,7 +81,7 @@
         <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.student }}</div><div class="text-xs text-ink-soft">Student SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.student_segments }} segments</div></div>
         <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.teacher }}</div><div class="text-xs text-ink-soft">Teacher SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.teacher_segments }} segments</div></div>
         <div class="rounded-xl bg-gray-50 p-3"><div class="text-2xl font-bold">{{ selected_totals.emergency }}</div><div class="text-xs text-ink-soft">Emergency SMS</div><div class="text-xs text-ink-soft mt-1">{{ selected_totals.emergency_segments }} segments</div></div>
-        <div class="rounded-xl bg-forest/10 p-3"><div class="text-2xl font-extrabold text-forest-deep">{{ selected_totals.segments }}</div><div class="text-xs text-ink-soft">Total billable segments</div><div class="text-xs text-ink-soft mt-1">Estimated billing units</div></div>
+        <div class="rounded-xl bg-forest/10 p-3"><div class="text-2xl font-extrabold text-forest-deep">{{ selected_totals.segments }}</div><div class="text-xs text-ink-soft">Total billable segments</div><div class="text-xs text-ink-soft mt-1">Exact billable SMS segments</div></div>
     </div>
 </div>
 {% endif %}
@@ -90,7 +90,7 @@
 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6">
     <div class="px-4 py-4 border-b border-gray-200">
         <h2 class="font-bold text-forest-deep">Month-wise SMS Billing · {{ selected_year }}</h2>
-        <p class="text-xs text-ink-soft mt-1">Successful SMS messages and estimated billable segments, split by the month the SMS was sent.</p>
+        <p class="text-xs text-ink-soft mt-1">Exact billable SMS segments, including the school name appended to each complete message.</p>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -104,7 +104,7 @@
                 {% if all_months or row.number in selected_months %}
                 <tr class="border-t border-gray-100 {% if row.selected %}bg-forest/5 font-semibold{% endif %}">
                     <td class="px-4 py-3 whitespace-nowrap">{{ row.label }}{% if row.number == current_month and selected_year == current_year %} <span class="text-[10px] text-amber-700">(Running)</span>{% endif %}</td>
-                    <td class="px-4 py-3 text-right">{{ row.student }}</td><td class="px-4 py-3 text-right">{{ row.teacher }}</td><td class="px-4 py-3 text-right">{{ row.emergency }}</td><td class="px-4 py-3 text-right font-bold">{{ row.total }}</td><td class="px-4 py-3 text-right">{{ row.segments }}</td>
+                    <td class="px-4 py-3 text-right">{{ row.student }}</td><td class="px-4 py-3 text-right">{{ row.teacher }}</td><td class="px-4 py-3 text-right">{{ row.emergency }}</td><td class="px-4 py-3 text-right font-bold">{{ row.billable_total }}</td><td class="px-4 py-3 text-right">{{ row.segments }}</td>
                 </tr>
                 {% endif %}
                 {% endfor %}
