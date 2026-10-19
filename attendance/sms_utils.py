@@ -12,7 +12,7 @@ _GSM7_EXTENDED = "^{}\\[~]|€\f"
 
 
 def sms_segment_count(message):
-    """Estimate billable SMS segments using GSM-7/UCS-2 standard capacities."""
+    """Calculate GreenWeb billable SMS segments from the exact message text."""
     text = str(message or "")
     septets = 0
     is_gsm7 = True
