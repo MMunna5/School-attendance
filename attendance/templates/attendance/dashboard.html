@@ -18,25 +18,46 @@
 
 {% block content %}
 <style>
-    .dash-section{border:1px solid;border-radius:16px;padding:15px 17px;margin-bottom:13px}
-    .dash-section-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
-    .dash-section-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
-    .dash-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
-    .dash-link{min-width:0;min-height:66px;display:flex;align-items:center;gap:11px;padding:13px 14px;background:#fff;border:1px solid;border-radius:13px;text-decoration:none;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
-    .dash-link:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.12)}
-    .dash-link-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;flex:none}
+    .dash-section{border:1px solid;border-radius:17px;padding:17px 18px;margin-bottom:14px}
+    .dash-section-head{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+    .dash-section-icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none}
+    .dash-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    .dash-link{min-width:0;min-height:76px;display:flex;align-items:center;gap:12px;padding:15px 16px;background:#fff;border:1px solid;border-radius:14px;text-decoration:none;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+    .dash-link:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(15,23,42,.13)}
+    .dash-link-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;flex:none}
     .dash-link-copy{min-width:0;flex:1}
-    .dash-link-title{display:block;font-size:14px;line-height:1.35;font-weight:800;color:#172554}
+    .dash-link-title{display:block;font-size:14px;line-height:1.4;font-weight:800;color:#172554}
     .dash-link-desc{display:none}
-    .dash-arrow{font-size:21px;font-weight:700;flex:none;transition:transform .16s ease}
+    .dash-arrow{font-size:22px;font-weight:700;flex:none;transition:transform .16s ease}
     .dash-link:hover .dash-arrow{transform:translateX(3px)}
-    .student-section .dash-link{background:#eff6ff;border-color:#bfdbfe}
-    .teacher-section .dash-link{background:#ecfdf5;border-color:#a7f3d0}
+    .student-section .dash-link{background:#f8fafc;border-color:#cbd5e1}
+    .teacher-section .dash-link{background:#f0fdfa;border-color:#99f6e4}
     .tools-section .dash-link{background:#f5f3ff;border-color:#ddd6fe}
     .tools-section .dash-link:last-child{background:#fff7ed;border-color:#fed7aa}
+    .student-section .student-list-card{background:#e0f2fe;border-color:#7dd3fc}
+    .student-section .student-list-card .dash-link-icon{background:#bae6fd;color:#075985}
+    .student-section .student-list-card .dash-link-title,.student-section .student-list-card .dash-arrow{color:#075985}
+    .student-section .student-attendance-card{background:#eef2ff;border-color:#a5b4fc}
+    .student-section .student-attendance-card .dash-link-icon{background:#c7d2fe;color:#3730a3}
+    .student-section .student-attendance-card .dash-link-title,.student-section .student-attendance-card .dash-arrow{color:#3730a3}
+    .student-section .student-history-card{background:#f1f5f9;border-color:#cbd5e1}
+    .teacher-section .teacher-list-card{background:#ccfbf1;border-color:#5eead4}
+    .teacher-section .teacher-list-card .dash-link-icon{background:#99f6e4;color:#115e59}
+    .teacher-section .teacher-list-card .dash-link-title,.teacher-section .teacher-list-card .dash-arrow{color:#115e59}
+    .teacher-section .teacher-attendance-card{background:#dcfce7;border-color:#86efac}
+    .teacher-section .teacher-attendance-card .dash-link-icon{background:#bbf7d0;color:#166534}
+    .teacher-section .teacher-attendance-card .dash-link-title,.teacher-section .teacher-attendance-card .dash-arrow{color:#166534}
+    .teacher-section .teacher-history-card{background:#f0fdf4;border-color:#bbf7d0}
+    .tools-section .upload-card{background:#ede9fe;border-color:#c4b5fd}
+    .tools-section .sms-card{background:#fae8ff;border-color:#f0abfc}
     .dash-section h3{font-size:16px;line-height:1.25}
-    @media(max-width:767px){.dash-links{grid-template-columns:1fr}.dash-section{padding:13px}.dash-link{padding:13px;min-height:62px}.dash-link-title{font-size:14px}}
-    @media(min-width:768px) and (max-width:1050px){.dash-link{padding:11px 10px;gap:8px}.dash-link-title{font-size:12px}.dash-link-icon{width:34px;height:34px}}
+    .quick-access-heading{margin-top:0;margin-bottom:12px;padding:2px 1px}
+    .quick-access-heading h2{font-size:14px}
+    .today-summary-heading{margin-bottom:3px!important}
+    .today-summary-grid{margin-bottom:9px!important}
+    .dash-section:last-of-type{margin-bottom:5px}
+    @media(max-width:767px){.dash-links{grid-template-columns:1fr}.dash-section{padding:13px}.dash-link{padding:13px;min-height:66px}.dash-link-title{font-size:14px}.dash-section-head{margin-bottom:11px}}
+    @media(min-width:768px) and (max-width:1050px){.dash-link{padding:12px 10px;gap:8px;min-height:68px}.dash-link-title{font-size:12px}.dash-link-icon{width:35px;height:35px}.dash-links{gap:9px}}
 </style>
 
 {% if teacher %}
@@ -70,17 +91,17 @@
 {% endif %}
 
 {% if request.user.is_staff %}
-<div class="flex items-center justify-between mb-2">
+<div class="today-summary-heading flex items-center justify-between mb-2">
     <div class="text-[11px] font-bold tracking-widest uppercase text-ink-soft">Today · All Classes</div>
     <div class="text-[10px] text-ink-soft">{{ today|date:"d M Y" }}</div>
 </div>
-<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+<div class="today-summary-grid grid grid-cols-3 gap-2 sm:gap-3 mb-4">
     <div class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Students</div><div class="text-xl font-bold text-slate-800 mt-0.5">{{ admin_total }}</div></div>
     <div class="bg-white border border-emerald-100 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Present</div><div class="text-xl font-bold text-emerald-700 mt-0.5">{{ admin_present }}</div></div>
     <div class="bg-white border border-rose-100 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Absent</div><div class="text-xl font-bold text-rose-700 mt-0.5">{{ admin_absent }}</div></div>
 </div>
 
-<div class="mb-2 flex items-center justify-between">
+<div class="quick-access-heading mb-2 flex items-center justify-between">
     <h2 class="text-xs font-extrabold tracking-widest uppercase text-slate-700">Quick Access</h2>
     <span class="text-[10px] text-slate-400">Administration panel</span>
 </div>
@@ -95,9 +116,9 @@
         <span class="ml-auto text-[10px] font-bold tracking-wider text-blue-500">01</span>
     </div>
     <div class="dash-links">
-        <a href="{% url 'student_list' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 19h6v-1a4 4 0 00-6.5-3.12M16 19H8m8 0v-1a4 4 0 00-8 0v1m8-11a3 3 0 11-6 0 3 3 0 016 0zM5 10a3 3 0 100-6 3 3 0 000 6z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student List</span></span><span class="dash-arrow text-blue-500">›</span></a>
-        <a href="{% url 'attendance_page' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Student Attendance</span></span><span class="dash-arrow text-blue-500">›</span></a>
-        <a href="{% url 'attendance_history' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student Attendance History</span></span><span class="dash-arrow text-blue-500">›</span></a>
+        <a href="{% url 'student_list' %}" class="dash-link student-list-card border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 19h6v-1a4 4 0 00-6.5-3.12M16 19H8m8 0v-1a4 4 0 00-8 0v1m8-11a3 3 0 11-6 0 3 3 0 016 0zM5 10a3 3 0 100-6 3 3 0 000 6z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student List</span></span><span class="dash-arrow text-blue-500">›</span></a>
+        <a href="{% url 'attendance_page' %}" class="dash-link student-attendance-card border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Student Attendance</span></span><span class="dash-arrow text-blue-500">›</span></a>
+        <a href="{% url 'attendance_history' %}" class="dash-link student-history-card border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student Attendance History</span></span><span class="dash-arrow text-blue-500">›</span></a>
     </div>
 </section>
 
@@ -111,9 +132,9 @@
         <span class="ml-auto text-[10px] font-bold tracking-wider text-emerald-600">02</span>
     </div>
     <div class="dash-links">
-        <a href="{% url 'teacher_list' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0H5zm14-13a3 3 0 010 6" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher List</span></span><span class="dash-arrow text-emerald-600">›</span></a>
-        <a href="{% url 'mark_teacher_attendance' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Teacher Attendance</span></span><span class="dash-arrow text-emerald-600">›</span></a>
-        <a href="{% url 'teacher_attendance_history' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher Attendance History</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+        <a href="{% url 'teacher_list' %}" class="dash-link teacher-list-card border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0H5zm14-13a3 3 0 010 6" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher List</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+        <a href="{% url 'mark_teacher_attendance' %}" class="dash-link teacher-attendance-card border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Teacher Attendance</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+        <a href="{% url 'teacher_attendance_history' %}" class="dash-link teacher-history-card border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher Attendance History</span></span><span class="dash-arrow text-emerald-600">›</span></a>
     </div>
 </section>
 
@@ -127,8 +148,8 @@
         <span class="ml-auto text-[10px] font-bold tracking-wider text-violet-600">03</span>
     </div>
     <div class="dash-links">
-        <a href="{% url 'student_upload' %}" class="dash-link border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v4h16v-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Upload Excel</span></span><span class="dash-arrow text-violet-600">›</span></a>
-        <a href="{% url 'sms_status' %}" class="dash-link border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H7l-3 3V5zm4 4h8m-8 3h5" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">SMS Status</span></span><span class="dash-arrow text-violet-600">›</span></a>
+        <a href="{% url 'student_upload' %}" class="dash-link upload-card border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v4h16v-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Upload Excel</span></span><span class="dash-arrow text-violet-600">›</span></a>
+        <a href="{% url 'sms_status' %}" class="dash-link sms-card border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H7l-3 3V5zm4 4h8m-8 3h5" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">SMS Status</span></span><span class="dash-arrow text-violet-600">›</span></a>
         <a href="{% url 'emergency_sms' %}" class="dash-link border-amber-200 bg-amber-50 hover:border-amber-400"><span class="dash-link-icon bg-amber-100 text-amber-800"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.86L2.8 17a2 2 0 001.74 3h14.92a2 2 0 001.74-3l-7.46-13.14a2 2 0 00-3.44 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title text-amber-950">Emergency SMS / Notice</span></span><span class="dash-arrow text-amber-700">›</span></a>
     </div>
 </section>
