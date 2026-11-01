@@ -56,27 +56,46 @@
     .today-summary-heading{margin-bottom:3px!important}
     .today-summary-grid{margin-bottom:9px!important}
     .dash-section:last-of-type{margin-bottom:5px}
-    /* Clear, high-contrast section and option colours */
-    .student-section{background:#dbeafe!important;border-color:#93c5fd!important}
-    .student-section .dash-link{background:#2563eb!important;border-color:#1d4ed8!important;color:#fff!important}
-    .student-section .dash-link-title,.student-section .dash-arrow{color:#fff!important}
-    .student-section .dash-link-icon{background:rgba(255,255,255,.2)!important;color:#fff!important}
-    .teacher-section{background:#d1fae5!important;border-color:#6ee7b7!important}
-    .teacher-section .dash-link{background:#059669!important;border-color:#047857!important;color:#fff!important}
-    .teacher-section .dash-link-title,.teacher-section .dash-arrow{color:#fff!important}
-    .teacher-section .dash-link-icon{background:rgba(255,255,255,.2)!important;color:#fff!important}
-    .tools-section{background:#ede9fe!important;border-color:#c4b5fd!important}
-    .tools-section .dash-link{background:#7c3aed!important;border-color:#6d28d9!important;color:#fff!important}
-    .tools-section .dash-link-title,.tools-section .dash-arrow{color:#fff!important}
-    .tools-section .dash-link-icon{background:rgba(255,255,255,.2)!important;color:#fff!important}
+    /* Refined school-admin palette: muted section surfaces, clean white action cards */
+    .student-section{background:#eaf0f7!important;border-color:#cbd5e1!important}
+    .student-section .dash-section-icon{background:#d8e3ef!important;color:#334e68!important}
+    .student-section .dash-section-head h3{color:#243b53!important}
+    .student-section .dash-section-head>span:last-child{color:#52677d!important}
+    .student-section .dash-link{background:#fff!important;border:1px solid #cbd5e1!important;box-shadow:0 1px 2px rgba(15,23,42,.045)}
+    .student-section .dash-link-title{color:#26384a!important}
+    .student-section .dash-arrow{color:#647b91!important}
+    .student-section .dash-link-icon{background:#e8eff6!important;color:#36536f!important}
 
-    /* Comfortable sizing: readable labels without wasting vertical space */
+    .teacher-section{background:#edf2ef!important;border-color:#cbd8d0!important}
+    .teacher-section .dash-section-icon{background:#dce8df!important;color:#3d5b49!important}
+    .teacher-section .dash-section-head h3{color:#294536!important}
+    .teacher-section .dash-section-head>span:last-child{color:#60786a!important}
+    .teacher-section .dash-link{background:#fff!important;border:1px solid #cbd8d0!important;box-shadow:0 1px 2px rgba(15,23,42,.045)}
+    .teacher-section .dash-link-title{color:#294536!important}
+    .teacher-section .dash-arrow{color:#668171!important}
+    .teacher-section .dash-link-icon{background:#e7efe9!important;color:#42634f!important}
+
+    .tools-section{background:#f2f0eb!important;border-color:#ddd6c9!important}
+    .tools-section .dash-section-icon{background:#e8e2d7!important;color:#65543d!important}
+    .tools-section .dash-section-head h3{color:#4d4232!important}
+    .tools-section .dash-section-head>span:last-child{color:#82745e!important}
+    .tools-section .dash-link{background:#fff!important;border:1px solid #ddd6c9!important;box-shadow:0 1px 2px rgba(15,23,42,.045)}
+    .tools-section .dash-link-title{color:#4d4232!important}
+    .tools-section .dash-arrow{color:#85765e!important}
+    .tools-section .dash-link-icon{background:#f0ece4!important;color:#6b5a40!important}
+    .tools-section .dash-link:last-child{background:#fff!important;border-color:#d8cbb8!important}
+    .tools-section .dash-link:last-child .dash-link-icon{background:#f3ece1!important;color:#80613b!important}
+    .tools-section .dash-link:last-child .dash-link-title{color:#55432d!important}
+    .tools-section .dash-link:last-child .dash-arrow{color:#80613b!important}
+
+    /* Comfortable, readable sizing */
     .dash-section{padding:11px 14px;margin-bottom:10px;border-radius:14px}
     .dash-section-head{gap:9px;margin-bottom:9px}
     .dash-section-icon{width:36px;height:36px;border-radius:11px}
     .dash-section h3{font-size:15px;line-height:1.3}
     .dash-links{gap:9px}
     .dash-link{min-height:64px;padding:10px 12px;gap:9px;border-radius:11px}
+    .dash-link:hover{box-shadow:0 5px 14px rgba(15,23,42,.09);transform:translateY(-1px)}
     .dash-link-icon{width:34px;height:34px;border-radius:9px}
     .dash-link-title{font-size:14px;line-height:1.3;font-weight:850;letter-spacing:.05px}
     .dash-arrow{font-size:20px}
@@ -85,7 +104,6 @@
     .today-summary-grid{margin-bottom:7px!important}
     .today-summary-grid>div{padding-top:8px;padding-bottom:8px}
     .dash-section:last-of-type{margin-bottom:3px}
-
     @media(max-width:767px){
         .dash-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
         .dash-section{padding:10px;margin-bottom:9px}
