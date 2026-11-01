@@ -4,214 +4,132 @@
 {% block header_title %}Welcome, {{ teacher.name|default:request.user.username }}{% endblock %}
 {% block header_links %}
 <a href="{% url 'change_password' %}" class="nav-btn">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
     Password
 </a>
 <form method="post" action="{% url 'logout' %}" class="inline">
     {% csrf_token %}
     <button type="submit" class="nav-btn nav-btn-danger">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
         Log Out
     </button>
 </form>
 {% endblock %}
 
 {% block content %}
+<style>
+    .dash-section{border:1px solid;border-radius:15px;padding:13px 15px;margin-bottom:12px}
+    .dash-section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .dash-section-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+    .dash-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+    .dash-link{min-width:0;display:flex;align-items:center;gap:9px;padding:10px 11px;background:#fff;border:1px solid;border-radius:11px;text-decoration:none;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+    .dash-link:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(15,23,42,.08)}
+    .dash-link-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:9px;flex:none}
+    .dash-link-copy{min-width:0;flex:1}
+    .dash-link-title{display:block;font-size:12px;line-height:1.35;font-weight:700;color:#1e293b}
+    .dash-link-desc{display:block;margin-top:3px;font-size:10px;line-height:1.35;color:#64748b}
+    .dash-arrow{font-size:16px;flex:none;transition:transform .16s ease}
+    .dash-link:hover .dash-arrow{transform:translateX(3px)}
+    @media(max-width:767px){.dash-links{grid-template-columns:1fr}.dash-section{padding:12px}.dash-link{padding:11px}.dash-link-title{font-size:13px}.dash-link-desc{font-size:11px}}
+    @media(min-width:768px) and (max-width:1050px){.dash-link{padding:9px 8px;gap:7px}.dash-link-desc{font-size:9px}.dash-link-icon{width:29px;height:29px}}
+</style>
 
 {% if teacher %}
-<div class="mb-2 font-display text-[11px] tracking-widest uppercase text-ink-soft">
-    Today · {{ today|date:"l, d F Y" }}
+<div class="mb-2 flex items-center justify-between gap-2">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Today · {{ today|date:"l, d F Y" }}</div>
 </div>
-
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Total</div>
-        <div class="text-2xl font-bold text-forest-deep mt-1">{{ total_students }}</div>
-    </div>
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
-        <div class="text-2xl font-bold text-present mt-1">{{ present_count }}</div>
-    </div>
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
-        <div class="text-2xl font-bold text-absent mt-1">{{ absent_count }}</div>
-    </div>
+<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+    <div class="bg-white border border-gray-200 rounded-xl px-3 py-3 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-ink-soft">Total</div><div class="text-xl font-bold text-forest-deep mt-0.5">{{ total_students }}</div></div>
+    <div class="bg-white border border-emerald-100 rounded-xl px-3 py-3 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-ink-soft">Present</div><div class="text-xl font-bold text-present mt-0.5">{{ present_count }}</div></div>
+    <div class="bg-white border border-red-100 rounded-xl px-3 py-3 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-ink-soft">Absent</div><div class="text-xl font-bold text-absent mt-0.5">{{ absent_count }}</div></div>
 </div>
 
 {% if teacher_classes %}
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">
-    Your Assigned Class{% if teacher_classes|length > 1 %}es{% endif %} — Take Attendance
-</div>
-<div class="grid gap-4 mb-6">
+<div class="mb-2 text-[11px] font-bold tracking-wider uppercase text-ink-soft">Your Assigned Class{% if teacher_classes|length > 1 %}es{% endif %} · Take Attendance</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
     {% for class_name in teacher_classes %}
-    <a href="{% url 'attendance_page' %}?class={{ class_name }}"
-        class="block bg-white border-2 border-forest/20 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition">
-        <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-2xl bg-forest text-white flex items-center justify-center text-xl font-bold flex-shrink-0">{{ class_name }}</div>
-            <div class="flex-1 min-w-0">
-                <div class="font-display text-[11px] tracking-widest uppercase text-gold mb-0.5">Class</div>
-                <h2 class="text-xl font-bold text-forest-deep">Class {{ class_name }}</h2>
-                <p class="text-sm text-ink-soft mt-1">Mark present / absent · SMS to parents of absentees</p>
-            </div>
-            <div class="text-forest font-bold text-sm flex-shrink-0 hidden sm:block">Open →</div>
-        </div>
+    <a href="{% url 'attendance_page' %}?class={{ class_name }}" class="flex items-center gap-3 rounded-xl border border-forest/20 bg-white p-3 shadow-sm hover:border-forest hover:shadow-md transition">
+        <span class="w-10 h-10 rounded-xl bg-forest text-white flex items-center justify-center text-lg font-bold">{{ class_name }}</span>
+        <span class="min-w-0 flex-1"><span class="block text-sm font-bold text-forest-deep">Class {{ class_name }}</span><span class="block text-xs text-ink-soft mt-0.5">Mark present / absent</span></span>
+        <span class="text-forest">→</span>
     </a>
     {% endfor %}
 </div>
-
-<a href="{% url 'absent_report' %}" class="block bg-white border-2 border-absent/20 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-absent transition mb-4">
-    <h2 class="text-lg font-bold text-absent">Absent Yesterday</h2>
-    <p class="text-sm text-ink-soft mt-1">Quick list of who was absent on the previous day</p>
-</a>
-<a href="{% url 'class_history' %}" class="block bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-forest transition mb-6">
-    <h2 class="text-lg font-bold text-forest-deep">Class Attendance History</h2>
-    <p class="text-sm text-ink-soft mt-1">Check by date, full month, or a single student's absent days</p>
-</a>
-{% else %}
-<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 mb-6 text-sm">
-    No class has been assigned to you yet. Please contact the admin.
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+    <a href="{% url 'absent_report' %}" class="rounded-xl border border-red-100 bg-red-50/70 p-3 hover:border-red-300 transition"><span class="text-sm font-bold text-red-800">Absent Yesterday</span><span class="block text-xs text-red-700/80 mt-1">Previous day's absent students</span></a>
+    <a href="{% url 'class_history' %}" class="rounded-xl border border-slate-200 bg-white p-3 hover:border-forest/40 transition"><span class="text-sm font-bold text-slate-800">Class Attendance History</span><span class="block text-xs text-slate-500 mt-1">Daily, monthly and student records</span></a>
 </div>
+{% else %}
+<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 mb-4 text-sm">No class has been assigned to you yet. Please contact the admin.</div>
 {% endif %}
 {% endif %}
 
 {% if request.user.is_staff %}
-<div class="mb-2 font-display text-[11px] tracking-widest uppercase text-ink-soft">Today · All Classes</div>
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-7">
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Students</div>
-        <div class="text-2xl font-bold text-forest-deep mt-1">{{ admin_total }}</div>
-    </div>
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Present</div>
-        <div class="text-2xl font-bold text-present mt-1">{{ admin_present }}</div>
-    </div>
-    <div class="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <div class="text-[11px] uppercase tracking-widest text-ink-soft">Absent</div>
-        <div class="text-2xl font-bold text-absent mt-1">{{ admin_absent }}</div>
-    </div>
+<div class="flex items-center justify-between mb-2">
+    <div class="text-[11px] font-bold tracking-widest uppercase text-ink-soft">Today · All Classes</div>
+    <div class="text-[10px] text-ink-soft">{{ today|date:"d M Y" }}</div>
+</div>
+<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+    <div class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Students</div><div class="text-xl font-bold text-slate-800 mt-0.5">{{ admin_total }}</div></div>
+    <div class="bg-white border border-emerald-100 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Present</div><div class="text-xl font-bold text-emerald-700 mt-0.5">{{ admin_present }}</div></div>
+    <div class="bg-white border border-rose-100 rounded-xl px-3 py-2.5 text-center shadow-sm"><div class="text-[10px] uppercase tracking-widest text-slate-500">Absent</div><div class="text-xl font-bold text-rose-700 mt-0.5">{{ admin_absent }}</div></div>
 </div>
 
-<div class="space-y-5">
-
-    <!-- Student management -->
-    <section class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 sm:p-5">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5.2-3.82M17 20H7m10 0v-2c0-.7-.18-1.36-.5-1.93M7 20H2v-2a4 4 0 015.2-3.82M7 20v-2c0-.7.18-1.36.5-1.93m0 0a5 5 0 019 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            </div>
-            <div>
-                <h2 class="text-base font-bold text-blue-950">Student Management</h2>
-                <p class="text-xs text-blue-700/80">Student records, daily attendance and reports</p>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <a href="{% url 'student_list' %}" class="group flex items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 19h6v-1a4 4 0 00-6.5-3.12M16 19H8m8 0v-1a4 4 0 00-8 0v1m8-11a3 3 0 11-6 0 3 3 0 016 0zm5 3a3 3 0 10-2.5-4.65" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Student List</span><span class="mt-0.5 block text-xs text-slate-500">View, add, edit and manage students</span></span>
-                <span class="text-blue-500 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'attendance_page' %}" class="group flex items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm3 10l2 2 4-4" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Take Student Attendance</span><span class="mt-0.5 block text-xs text-slate-500">Mark attendance for any class</span></span>
-                <span class="text-blue-500 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'attendance_history' %}" class="group flex items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Student Attendance History</span><span class="mt-0.5 block text-xs text-slate-500">Search daily and monthly records</span></span>
-                <span class="text-blue-500 transition group-hover:translate-x-1">→</span>
-            </a>
-        </div>
-    </section>
-
-    <!-- Teacher management -->
-    <section class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:p-5">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.42A12 12 0 0118 16.5c-3.5 2.5-8.5 2.5-12 0a12 12 0 01-.16-5.92L12 14zm0 0v6" /></svg>
-            </div>
-            <div>
-                <h2 class="text-base font-bold text-emerald-950">Teacher Management</h2>
-                <p class="text-xs text-emerald-700/80">Teacher profiles, attendance and reports</p>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <a href="{% url 'teacher_list' %}" class="group flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0H5zm14-13a3 3 0 010 6m2 7a5 5 0 00-3-4.58" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Teacher List</span><span class="mt-0.5 block text-xs text-slate-500">Create logins and assign classes</span></span>
-                <span class="text-emerald-600 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'mark_teacher_attendance' %}" class="group flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Take Teacher Attendance</span><span class="mt-0.5 block text-xs text-slate-500">Mark today's teacher attendance</span></span>
-                <span class="text-emerald-600 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'teacher_attendance_history' %}" class="group flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Teacher Attendance History</span><span class="mt-0.5 block text-xs text-slate-500">Monthly summary and Excel download</span></span>
-                <span class="text-emerald-600 transition group-hover:translate-x-1">→</span>
-            </a>
-        </div>
-    </section>
-
-    <!-- Other administration tools -->
-    <section class="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 sm:p-5">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16M8 4v16m8-16v16" /></svg>
-            </div>
-            <div>
-                <h2 class="text-base font-bold text-violet-950">Other Tools</h2>
-                <p class="text-xs text-violet-700/80">Bulk upload, SMS monitoring and urgent notices</p>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <a href="{% url 'student_upload' %}" class="group flex items-center gap-3 rounded-xl border border-violet-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v4h16v-4" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">Upload Excel</span><span class="mt-0.5 block text-xs text-slate-500">Import student data in bulk</span></span>
-                <span class="text-violet-600 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'sms_status' %}" class="group flex items-center gap-3 rounded-xl border border-violet-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H7l-3 3V5zm4 4h8m-8 3h5" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-slate-800">SMS Status</span><span class="mt-0.5 block text-xs text-slate-500">Monitor SMS delivery and retries</span></span>
-                <span class="text-violet-600 transition group-hover:translate-x-1">→</span>
-            </a>
-            <a href="{% url 'emergency_sms' %}" class="group flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.86L2.8 17a2 2 0 001.74 3h14.92a2 2 0 001.74-3l-7.46-13.14a2 2 0 00-3.44 0z" /></svg>
-                </span>
-                <span class="min-w-0 flex-1"><span class="block font-semibold text-sm text-amber-950">Emergency SMS / Notice</span><span class="mt-0.5 block text-xs text-amber-800/80">Send urgent notices to selected recipients</span></span>
-                <span class="text-amber-700 transition group-hover:translate-x-1">→</span>
-            </a>
-        </div>
-    </section>
+<div class="mb-2 flex items-center justify-between">
+    <h2 class="text-xs font-extrabold tracking-widest uppercase text-slate-700">Quick Access</h2>
+    <span class="text-[10px] text-slate-400">Administration panel</span>
 </div>
+
+<!-- 01 / STUDENTS -->
+<section class="dash-section border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50/70">
+    <div class="dash-section-head">
+        <span class="dash-section-icon bg-blue-100 text-blue-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 19h6v-1a4 4 0 00-6.5-3.12M16 19H8m8 0v-1a4 4 0 00-8 0v1m8-11a3 3 0 11-6 0 3 3 0 016 0zm5 3a3 3 0 10-2.5-4.65" /></svg>
+        </span>
+        <div class="min-w-0"><h3 class="text-sm font-extrabold text-blue-950">Student Management</h3><p class="text-[10px] text-blue-700/75">Student records · Daily attendance · Reports</p></div>
+        <span class="ml-auto text-[10px] font-bold tracking-wider text-blue-500">01</span>
+    </div>
+    <div class="dash-links">
+        <a href="{% url 'student_list' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 19h6v-1a4 4 0 00-6.5-3.12M16 19H8m8 0v-1a4 4 0 00-8 0v1m8-11a3 3 0 11-6 0 3 3 0 016 0zM5 10a3 3 0 100-6 3 3 0 000 6z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student List</span><span class="dash-link-desc">View, add, edit and manage students</span></span><span class="dash-arrow text-blue-500">›</span></a>
+        <a href="{% url 'attendance_page' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Student Attendance</span><span class="dash-link-desc">Mark attendance for any class</span></span><span class="dash-arrow text-blue-500">›</span></a>
+        <a href="{% url 'attendance_history' %}" class="dash-link border-blue-100 hover:border-blue-300"><span class="dash-link-icon bg-blue-50 text-blue-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Student Attendance History</span><span class="dash-link-desc">Daily and monthly attendance records</span></span><span class="dash-arrow text-blue-500">›</span></a>
+    </div>
+</section>
+
+<!-- 02 / TEACHERS -->
+<section class="dash-section border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/70">
+    <div class="dash-section-head">
+        <span class="dash-section-icon bg-emerald-100 text-emerald-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.42A12 12 0 0118 16.5c-3.5 2.5-8.5 2.5-12 0a12 12 0 01-.16-5.92L12 14zm0 0v6" /></svg>
+        </span>
+        <div class="min-w-0"><h3 class="text-sm font-extrabold text-emerald-950">Teacher Management</h3><p class="text-[10px] text-emerald-700/75">Teacher profiles · Attendance · Reports</p></div>
+        <span class="ml-auto text-[10px] font-bold tracking-wider text-emerald-600">02</span>
+    </div>
+    <div class="dash-links">
+        <a href="{% url 'teacher_list' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0H5zm14-13a3 3 0 010 6" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher List</span><span class="dash-link-desc">Create logins and assign classes</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+        <a href="{% url 'mark_teacher_attendance' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm4 10l2 2 4-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Take Teacher Attendance</span><span class="dash-link-desc">Mark today's teacher attendance</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+        <a href="{% url 'teacher_attendance_history' %}" class="dash-link border-emerald-100 hover:border-emerald-300"><span class="dash-link-icon bg-emerald-50 text-emerald-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Teacher Attendance History</span><span class="dash-link-desc">Monthly summary and Excel download</span></span><span class="dash-arrow text-emerald-600">›</span></a>
+    </div>
+</section>
+
+<!-- 03 / OTHER TOOLS -->
+<section class="dash-section border-violet-200 bg-gradient-to-r from-violet-50 to-fuchsia-50/60">
+    <div class="dash-section-head">
+        <span class="dash-section-icon bg-violet-100 text-violet-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16M8 4v16m8-16v16" /></svg>
+        </span>
+        <div class="min-w-0"><h3 class="text-sm font-extrabold text-violet-950">Other Tools</h3><p class="text-[10px] text-violet-700/75">Data import · SMS monitoring · Important notices</p></div>
+        <span class="ml-auto text-[10px] font-bold tracking-wider text-violet-600">03</span>
+    </div>
+    <div class="dash-links">
+        <a href="{% url 'student_upload' %}" class="dash-link border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v4h16v-4" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">Upload Excel</span><span class="dash-link-desc">Import student data in bulk</span></span><span class="dash-arrow text-violet-600">›</span></a>
+        <a href="{% url 'sms_status' %}" class="dash-link border-violet-100 hover:border-violet-300"><span class="dash-link-icon bg-violet-50 text-violet-700"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H7l-3 3V5zm4 4h8m-8 3h5" /></svg></span><span class="dash-link-copy"><span class="dash-link-title">SMS Status</span><span class="dash-link-desc">Delivery status and retry failed SMS</span></span><span class="dash-arrow text-violet-600">›</span></a>
+        <a href="{% url 'emergency_sms' %}" class="dash-link border-amber-200 bg-amber-50 hover:border-amber-400"><span class="dash-link-icon bg-amber-100 text-amber-800"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.86L2.8 17a2 2 0 001.74 3h14.92a2 2 0 001.74-3l-7.46-13.14a2 2 0 00-3.44 0z" /></svg></span><span class="dash-link-copy"><span class="dash-link-title text-amber-950">Emergency SMS / Notice</span><span class="dash-link-desc text-amber-800/80">Send urgent notices to recipients</span></span><span class="dash-arrow text-amber-700">›</span></a>
+    </div>
+</section>
 {% endif %}
 
 {% if not teacher and not request.user.is_staff %}
-<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">
-    Your account is not linked to any teacher or admin role.<br>
-    Please contact the administrator.
-</div>
+<div class="text-center text-ink-soft py-16 bg-white border border-gray-200 rounded-2xl">Your account is not linked to any teacher or admin role.<br>Please contact the administrator.</div>
 {% endif %}
-
 {% endblock %}
