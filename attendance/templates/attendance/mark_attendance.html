@@ -1,6 +1,49 @@
 {% extends "attendance/base.html" %}
 
-{% block title %}Take Attendance - Attendance Register{% endblock %}
+{% block title %}Take Attendance - Attendance Register
+<style>
+/* Clearer, more readable student attendance rows */
+.student-attendance-row{
+    padding:15px!important;
+    gap:12px!important;
+    border-color:#dce5de!important;
+    border-radius:14px!important;
+    box-shadow:0 2px 7px rgba(27,55,42,.06)!important;
+    transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+.student-attendance-row:hover{
+    border-color:#a9c0af!important;
+    box-shadow:0 5px 13px rgba(27,55,42,.10)!important;
+    transform:translateY(-1px);
+}
+.student-attendance-row>div:first-child{
+    width:42px!important;height:42px!important;min-width:42px;
+    font-size:14px!important;font-weight:700!important;
+}
+.student-attendance-row>div:nth-child(2) .text-sm,
+.student-attendance-row>div:nth-child(2) .font-semibold{
+    font-size:16px!important;line-height:1.5!important;font-weight:700!important;
+}
+.student-attendance-row>div:nth-child(2)>div:not(.font-semibold){
+    font-size:13px!important;line-height:1.45!important;margin-top:2px;
+}
+.student-attendance-row>div:nth-child(3) span{
+    font-size:12px!important;padding:9px 13px!important;border-radius:9px!important;
+}
+.student-attendance-row .present-option,
+.student-attendance-row .absent-option{
+    font-size:13px!important;padding:9px 14px!important;border-radius:9px!important;
+}
+@media(max-width:639px){
+    .student-attendance-row{padding:13px!important;gap:10px!important}
+    .student-attendance-row>div:nth-child(2) .text-sm,
+    .student-attendance-row>div:nth-child(2) .font-semibold{font-size:16px!important}
+    .student-attendance-row>div:nth-child(3){gap:8px!important}
+}
+@media(prefers-reduced-motion:reduce){.student-attendance-row{transition:none}.student-attendance-row:hover{transform:none}}
+</style>
+
+{% endblock %}
 
 {% block eyebrow %}
 {% if is_admin_user %}Admin{% elif current_class %}Class {{ current_class }}{% else %}Select Class{% endif %}
