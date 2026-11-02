@@ -325,8 +325,62 @@
 
     </main>
 
-    <footer class="border-t border-gray-200 bg-white pt-1 pb-3 text-center text-xs text-gray-500">
-        Developed by <a href="https://github.com/MMunna5" target="_blank" rel="noopener noreferrer" class="font-semibold text-gray-700 hover:underline">Munna</a>
+    <style>
+        .developer-credit {
+            background: linear-gradient(135deg, #172b43 0%, #243f5b 55%, #172b43 100%);
+            border-top: 1px solid rgba(232, 197, 106, 0.45);
+            color: #cbd5e1;
+            letter-spacing: 0.025em;
+        }
+
+        .developer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 3px;
+            padding: 4px 10px;
+            border: 1px solid rgba(232, 197, 106, 0.42);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(232, 197, 106, 0.18), rgba(232, 197, 106, 0.08));
+            color: #f4d783;
+            font-weight: 800;
+            letter-spacing: 0.045em;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+            transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        }
+
+        .developer-link:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, rgba(232, 197, 106, 0.32), rgba(232, 197, 106, 0.16));
+            border-color: #e8c56a;
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+            color: #fff1bf;
+        }
+
+        .developer-link:focus-visible {
+            outline: 3px solid #f4d783;
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .developer-link { transition: none; }
+            .developer-link:hover { transform: none; }
+        }
+    </style>
+
+    <footer class="developer-credit flex items-center justify-center gap-1.5 px-3 py-3 text-[11px] sm:text-xs">
+        <span class="font-medium">Developed by</span>
+        <a href="https://github.com/MMunna5" target="_blank" rel="noopener noreferrer"
+            class="developer-link" aria-label="Munna on GitHub">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4" aria-hidden="true">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.866-.014-1.7-2.782.605-3.369-1.343-3.369-1.343-.455-1.158-1.11-1.467-1.11-1.467-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.027 1.595 1.027 2.688 0 3.847-2.339 4.695-4.566 4.944.359.31.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.523 2 12 2z" clip-rule="evenodd"/>
+            </svg>
+            <span>Munna</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3 opacity-80" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.19-7.19v4.16a.75.75 0 001.5 0V5.78a.75.75 0 00-.75-.75H8.03a.75.75 0 000 1.5h4.16L5.22 13.72a.75.75 0 000 1.06z" clip-rule="evenodd"/>
+            </svg>
+        </a>
     </footer>
 
 </body>
