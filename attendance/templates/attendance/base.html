@@ -413,7 +413,36 @@
         @media(max-width:640px){button:not(.nav-btn),input[type="submit"],input[type="button"],a[role="button"]{min-height:38px}table{font-size:12px}table th,table td{padding:8px 9px}}
         @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
-    </style>
+    
+/* Consistent page-wide components: all attendance modules */
+html,body{min-height:100%;} body{min-height:100vh;min-height:100svh;display:flex;flex-direction:column}
+main{flex:1 0 auto!important;min-height:0;padding-bottom:12px!important}
+footer.developer-credit{position:static!important;inset:auto!important;z-index:2;flex:0 0 auto!important;margin-top:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important;box-shadow:0 -2px 10px rgba(20,41,31,.06)}
+main .bg-white.border,main .bg-white.rounded-xl,main .bg-white.rounded-2xl{border-color:#d5e0d8!important;box-shadow:0 2px 8px rgba(30,61,50,.055);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+main .bg-white.border:hover,main .bg-white.rounded-xl:hover,main .bg-white.rounded-2xl:hover{border-color:#9caf9f!important;box-shadow:0 5px 14px rgba(30,61,50,.10)}
+main a.block{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background-color .18s ease}
+main a.block:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(30,61,50,.12)}
+main form:not(.inline){border-radius:13px}
+main label{color:#405b4b}
+main input:not([type=checkbox]):not([type=radio]):not([type=hidden]),main select,main textarea{border-color:#cbd8ce;background:#fff;transition:border-color .18s ease,box-shadow .18s ease}
+main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):hover,main select:hover,main textarea:hover{border-color:#91a997}
+main button:not(.nav-btn):not(.present-option):not(.absent-option),main input[type=submit],main a[role=button]{box-shadow:0 2px 5px rgba(30,61,50,.08);transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+main button:not(:disabled):not(.nav-btn):not(.present-option):not(.absent-option):hover,main input[type=submit]:hover,main a[role=button]:hover{transform:translateY(-1px);box-shadow:0 5px 12px rgba(30,61,50,.16);filter:brightness(.98)}
+main .student-attendance-row{background:linear-gradient(105deg,#fff 0%,#f5f8f5 100%)!important;border:1px solid #d1ddd4!important;border-left:4px solid #789681!important;border-radius:12px!important;box-shadow:0 2px 7px rgba(30,61,50,.055)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+main .student-attendance-row:hover{transform:translateY(-1px);border-color:#91aa98!important;box-shadow:0 5px 13px rgba(30,61,50,.10)!important}
+main .student-attendance-row .present-option:hover{border-color:#347653!important;background:#eaf4ed!important;color:#246044!important}
+main .student-attendance-row .absent-option:hover{border-color:#b33a3a!important;background:#fceeee!important;color:#9d3030!important}
+main a.block.bg-gradient-to-br{min-height:104px!important;padding:15px!important;border-radius:13px!important;border-color:#cfdbd1!important;background-image:linear-gradient(135deg,#edf4ee 0%,#fff 75%)!important}
+main a.block.bg-gradient-to-br:hover{background-image:linear-gradient(135deg,#e3eee5 0%,#fff 78%)!important;border-color:#789681!important}
+main .dash-section{padding:10px 13px;margin-bottom:8px}
+main .dash-links{gap:8px}
+main .dash-link{min-height:60px;padding:9px 11px;gap:8px}
+main .dash-link:hover{border-color:#91aa98!important}
+main .dash-link-icon{width:32px;height:32px}
+@media(max-width:640px){main{padding-bottom:10px!important}main a.block.bg-gradient-to-br{min-height:88px!important;padding:13px!important}main .student-attendance-row{padding:10px!important}}
+@media(prefers-reduced-motion:reduce){main *,footer *{transition:none!important;transform:none!important}}
+
+</style>
 
     <footer class="developer-credit mt-auto flex items-center justify-center gap-1 px-3 py-2 text-[10px] sm:text-[11px]">
         <span class="font-medium">Developed by</span>
