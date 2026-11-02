@@ -1592,8 +1592,9 @@ def sms_status(request):
             sent_at__month__in=month_numbers,
         )
         emergency_qs = EmergencySmsLog.objects.filter(
-            created_at__year=year_value,
-            created_at__month__in=month_numbers,
+            sent_at__isnull=False,
+            sent_at__year=year_value,
+            sent_at__month__in=month_numbers,
         )
         student_segments = sum(student_sent_qs.values_list('sms_segments', flat=True))
         teacher_segments = sum(teacher_sent_qs.values_list('sms_segments', flat=True))
@@ -1614,12 +1615,12 @@ def sms_status(request):
 
     all_time_student_sent = AbsenceSms.objects.filter(status=AbsenceSms.STATUS_SENT).count()
     all_time_teacher_sent = TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_SENT).count()
-    all_time_emergency_sent = EmergencySmsLog.objects.count()
+    all_time_emergency_sent = EmergencySmsLog.objects.filter(sent_at__isnull=False).count()
     all_time_total_sent = all_time_student_sent + all_time_teacher_sent + all_time_emergency_sent
     all_time_segments = (
         sum(AbsenceSms.objects.filter(status=AbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True))
         + sum(TeacherAbsenceSms.objects.filter(status=TeacherAbsenceSms.STATUS_SENT).values_list('sms_segments', flat=True))
-        + sum(EmergencySmsLog.objects.values_list('sms_segments', flat=True))
+        + sum(EmergencySmsLog.objects.filter(sent_at__isnull=False).values_list('sms_segments', flat=True))
     )
 
     current_month_totals = sms_totals_for_months([current_month], current_year)
