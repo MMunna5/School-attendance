@@ -145,6 +145,7 @@ class EmergencySmsLog(models.Model):
     """One record for each successfully sent emergency SMS recipient."""
 
     sms_segments = models.PositiveIntegerField(default=1)
+    sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
