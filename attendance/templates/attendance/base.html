@@ -368,6 +368,51 @@
             .developer-link { transition: none; }
             .developer-link:hover { transform: none; }
         }
+    
+        /* Shared Attendance UI System — Forest, Gold & Paper */
+        :root {
+            --ui-forest:#1E3D32; --ui-forest-deep:#14291F; --ui-gold:#E8C56A;
+            --ui-paper:#F7F4EC; --ui-ink:#26382F; --ui-muted:#718078;
+            --ui-border:#E2E8E3; --ui-success:#347653; --ui-success-bg:#EAF4ED;
+            --ui-warning:#A86B12; --ui-warning-bg:#FFF5DF; --ui-danger:#B33A3A;
+            --ui-danger-bg:#FCEEEE; --ui-info:#315F83; --ui-info-bg:#EAF2F8;
+            --ui-radius:12px; --ui-shadow:0 3px 12px rgba(30,61,50,.07);
+        }
+        html{scroll-behavior:smooth}
+        body{color:var(--ui-ink);background:var(--ui-paper);font-family:'Noto Sans',sans-serif;-webkit-font-smoothing:antialiased}
+        main{flex:1 0 auto}
+        button,input,select,textarea{font:inherit}
+        button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+        button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(232,197,106,.72);outline-offset:2px}
+        button:not(.nav-btn),input[type="submit"],input[type="button"],a[role="button"]{min-height:40px;border-radius:9px;font-weight:600;letter-spacing:.005em;transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}
+        button:not(.nav-btn):not([class*="bg-"]),input[type="submit"]:not([class*="bg-"]),input[type="button"]:not([class*="bg-"]){padding:9px 15px;color:#fff;background:var(--ui-forest);border:1px solid var(--ui-forest)}
+        button:not(.nav-btn):hover,input[type="submit"]:hover,input[type="button"]:hover,a[role="button"]:hover{box-shadow:0 3px 9px rgba(30,61,50,.14)}
+        button:disabled,input:disabled,select:disabled,textarea:disabled{cursor:not-allowed;opacity:.58}
+        input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),select,textarea{min-height:40px;border:1px solid #D6DFD8;border-radius:9px;background-color:#fff;color:var(--ui-ink);padding:9px 11px;transition:border-color .16s ease,box-shadow .16s ease}
+        textarea{min-height:92px}
+        input::placeholder,textarea::placeholder{color:#98A39C}
+        input:focus,select:focus,textarea:focus{border-color:var(--ui-forest);box-shadow:0 0 0 3px rgba(30,61,50,.10);outline:none}
+        input[type="checkbox"],input[type="radio"]{accent-color:var(--ui-forest);width:16px;height:16px}
+        table{border-collapse:separate;border-spacing:0}
+        table thead th{background:#EEF2ED;color:#344B3E;font-weight:700;font-size:12px;letter-spacing:.025em}
+        table tbody tr{transition:background-color .14s ease}
+        table tbody tr:hover{background-color:#F6F8F5}
+        table th,table td{border-color:var(--ui-border)}
+        hr{border-color:var(--ui-border)}
+        .btn-primary{background:var(--ui-forest)!important;border-color:var(--ui-forest)!important;color:#fff!important}
+        .btn-primary:hover{background:var(--ui-forest-deep)!important}
+        .btn-secondary{background:#EEF2ED!important;border:1px solid #DCE5DD!important;color:var(--ui-forest)!important}
+        .btn-success{background:var(--ui-success)!important;border-color:var(--ui-success)!important;color:#fff!important}
+        .btn-warning{background:#D99A2B!important;border-color:#D99A2B!important;color:#fff!important}
+        .btn-danger{background:var(--ui-danger)!important;border-color:var(--ui-danger)!important;color:#fff!important}
+        .status-success{color:var(--ui-success);background:var(--ui-success-bg)}
+        .status-warning{color:var(--ui-warning);background:var(--ui-warning-bg)}
+        .status-danger{color:var(--ui-danger);background:var(--ui-danger-bg)}
+        .status-info{color:var(--ui-info);background:var(--ui-info-bg)}
+        .developer-credit{flex-shrink:0;background:var(--ui-forest)!important;border-top:1px solid rgba(232,197,106,.35);color:#fff!important}
+        @media(max-width:640px){button:not(.nav-btn),input[type="submit"],input[type="button"],a[role="button"]{min-height:38px}table{font-size:12px}table th,table td{padding:8px 9px}}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
     </style>
 
     <footer class="developer-credit mt-auto flex items-center justify-center gap-1 px-3 py-2 text-[10px] sm:text-[11px]">
