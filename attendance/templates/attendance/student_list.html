@@ -26,6 +26,22 @@
 {% endblock %}
 
 {% block content %}
+<style>
+/* Student list visual system */
+.student-directory-form{background:#edf3ee!important;border:1px solid #cbd9ce!important;border-radius:14px!important;padding:14px!important;margin-bottom:16px!important;gap:10px!important}
+.student-directory-form label{color:#385345!important;font-size:12px!important}
+.student-class-grid a{background:#e5eee7!important;border:1px solid #bfd0c3!important;border-radius:14px!important;padding:18px 12px!important;box-shadow:0 2px 7px rgba(30,61,50,.07)!important}
+.student-class-grid a:nth-child(3n+2){background:#e9eef5!important;border-color:#c8d3e0!important}
+.student-class-grid a:nth-child(3n){background:#f4eee2!important;border-color:#dfd1b8!important}
+.student-row{background:#f0f5f1!important;border:1px solid #d1ded4!important;border-radius:12px!important;padding:11px 14px!important;box-shadow:0 1px 4px rgba(30,61,50,.05)!important;gap:12px!important}
+.student-row:nth-child(even){background:#edf1f6!important;border-color:#d2dce7!important}
+.student-row:hover{background:#e4eee6!important}
+.student-roll{background:#dce9df!important;border-color:#91ad99!important;color:#234b34!important;width:40px!important;height:40px!important}
+.student-name{color:#203d2c!important;font-size:14px!important}
+.student-meta{color:#64756a!important}
+.student-empty{background:#f0f5f1!important;border:1px solid #d1ded4!important;border-radius:14px!important;padding:36px 16px!important}
+@media(max-width:640px){.student-directory-form{padding:10px!important;margin-bottom:12px!important}.student-class-grid{gap:10px!important}.student-class-grid a{padding:14px 8px!important}.student-row{padding:9px!important;gap:9px!important}.student-row .student-actions{gap:10px!important;font-size:12px!important}}
+</style>
 
 <style>
 /* Student directory: clear section colors, readable cards and consistent spacing */
