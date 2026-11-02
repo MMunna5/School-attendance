@@ -190,6 +190,101 @@
         .today-summary-grid>div{padding:10px 6px!important}
     }
 
+
+    /* Deeper, coordinated admin palette with clear interactive states */
+    .today-summary-heading{
+        background:#1e344b!important;
+        border-color:#172b3e!important;
+        box-shadow:0 3px 8px rgba(20,38,58,.16)!important
+    }
+    .today-summary-grid{
+        background:#dce5ef!important;
+        border-color:#c2cfdd!important
+    }
+    .today-summary-grid>div{
+        border-color:#c6d2df!important;
+        box-shadow:0 2px 5px rgba(28,48,70,.07)!important
+    }
+
+    .student-section{
+        background:#dfe8f2!important;
+        border-color:#b8c9dc!important;
+        box-shadow:0 3px 10px rgba(40,66,92,.06)
+    }
+    .student-section .dash-section-icon{background:#c4d5e7!important;color:#23496d!important}
+    .student-section .dash-section-head h3{color:#1f3c59!important}
+    .student-section .dash-section-head>span:last-child{color:#496b8d!important}
+    .student-section .dash-link{border-color:#c2d0df!important}
+    .student-section .dash-link-icon{background:#e0eaf4!important;color:#28577f!important}
+    .student-section .dash-link-title{color:#203f5e!important}
+    .student-section .dash-arrow{color:#42698c!important}
+
+    .teacher-section{
+        background:#dfeae5!important;
+        border-color:#b9cec4!important;
+        box-shadow:0 3px 10px rgba(35,75,58,.06)
+    }
+    .teacher-section .dash-section-icon{background:#c5d9cf!important;color:#285844!important}
+    .teacher-section .dash-section-head h3{color:#234a38!important}
+    .teacher-section .dash-section-head>span:last-child{color:#4d7763!important}
+    .teacher-section .dash-link{border-color:#c2d4ca!important}
+    .teacher-section .dash-link-icon{background:#e1eee7!important;color:#2d674d!important}
+    .teacher-section .dash-link-title{color:#254c3a!important}
+    .teacher-section .dash-arrow{color:#47745e!important}
+
+    .tools-section{
+        background:#e5e7ef!important;
+        border-color:#c5cad9!important;
+        box-shadow:0 3px 10px rgba(53,62,92,.06)
+    }
+    .tools-section .dash-section-icon{background:#cfd4e3!important;color:#414f75!important}
+    .tools-section .dash-section-head h3{color:#374666!important}
+    .tools-section .dash-section-head>span:last-child{color:#657294!important}
+    .tools-section .dash-link{border-color:#cbd0df!important}
+    .tools-section .dash-link-icon{background:#e7eaf2!important;color:#4a5b83!important}
+    .tools-section .dash-link-title{color:#394a6c!important}
+    .tools-section .dash-arrow{color:#65769a!important}
+    .tools-section .dash-link:last-child{border-color:#d6c4a9!important}
+    .tools-section .dash-link:last-child .dash-link-icon{background:#f1e7d8!important;color:#805b2d!important}
+    .tools-section .dash-link:last-child .dash-link-title{color:#5c4327!important}
+    .tools-section .dash-link:last-child .dash-arrow{color:#8a6334!important}
+
+    /* Noticeable but smooth lift on every dashboard action tile */
+    .dash-link,
+    main a.rounded-xl{
+        position:relative;
+        transition:transform .22s cubic-bezier(.2,.75,.25,1),
+                   box-shadow .22s ease,
+                   border-color .22s ease,
+                   background-color .22s ease!important;
+        will-change:transform
+    }
+    @media (hover:hover) and (pointer:fine){
+        .dash-link:hover,
+        main a.rounded-xl:hover{
+            transform:translateY(-5px) scale(1.012)!important;
+            box-shadow:0 12px 24px rgba(24,43,65,.17),0 3px 7px rgba(24,43,65,.08)!important;
+            z-index:2
+        }
+        .student-section .dash-link:hover{background:#f3f7fc!important;border-color:#7898b8!important}
+        .teacher-section .dash-link:hover{background:#f1f8f4!important;border-color:#79a18d!important}
+        .tools-section .dash-link:hover{background:#f5f6fb!important;border-color:#8994b4!important}
+        .tools-section .dash-link:last-child:hover{background:#fff8ed!important;border-color:#b88d55!important}
+        main a.rounded-xl:hover{box-shadow:0 10px 20px rgba(24,43,65,.14)!important}
+    }
+    .dash-link:focus-visible,
+    main a.rounded-xl:focus-visible{
+        outline:3px solid #547da5!important;
+        outline-offset:3px
+    }
+    @media(prefers-reduced-motion:reduce){
+        .dash-link,main a.rounded-xl{transition:none!important;will-change:auto}
+        .dash-link:hover,main a.rounded-xl:hover{transform:none!important}
+    }
+    @media(max-width:767px){
+        .dash-link:hover,main a.rounded-xl:hover{transform:none!important}
+    }
+
 </style>
 
 {% if teacher %}
