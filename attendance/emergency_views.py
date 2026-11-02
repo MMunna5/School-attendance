@@ -95,9 +95,9 @@ def emergency_sms(request):
             messages.success(
                 request,
                 f"Emergency SMS finished: {sent} sent, {failed} failed, "
-                f"{missing_phone} skipped (no parent phone), {len(recipient_list)} student(s) targeted. "
-                f"Billable SMS segments (including school name): {billed_segments}."
+                f"{missing_phone} skipped (no parent phone), {len(recipient_list)} student(s) targeted."
             )
+            messages.info(request, str(billed_segments), extra_tags="billable-segments")
             return redirect("emergency_sms")
 
     return render(request, "attendance/emergency_sms.html", {
