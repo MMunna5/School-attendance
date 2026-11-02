@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from .models import EmergencySmsLog, Student
 from .sms_utils import append_school_name, send_sms, sms_segment_count
@@ -78,7 +79,10 @@ def emergency_sms(request):
                 billing_log = None
                 try:
                     # Record the exact billable units before sending; never send an untracked SMS.
-                    billing_log = EmergencySmsLog.objects.create(sms_segments=segments_per_message)
+                    billing_log = EmergencySmsLog.objects.create(
+                        sms_segments=segments_per_message,
+                        sent_at=timezone.now(),
+                    )
                     success, _detail = send_sms(student.parent_mobile, full_message)
                     if success:
                         sent += 1
