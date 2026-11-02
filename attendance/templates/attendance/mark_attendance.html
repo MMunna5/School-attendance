@@ -36,6 +36,36 @@
 
 {% block content %}
 
+<style>
+/* Take Attendance: clear, consistent class-status cards */
+.class-status-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.class-status-card {
+  position:relative; display:flex; flex-direction:column; justify-content:center;
+  min-height:88px; padding:14px 15px; border:1px solid var(--class-border,#dbe5df)!important;
+  border-left:4px solid var(--class-accent,#43866a)!important; border-radius:14px!important;
+  background:var(--class-bg,#eff8f2)!important; color:#183b2b!important;
+  text-decoration:none!important; box-shadow:0 2px 7px rgba(20,55,38,.06);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
+}
+.class-status-card:nth-child(5n+1){--class-bg:#edf7f1;--class-border:#cce6d5;--class-accent:#278052}
+.class-status-card:nth-child(5n+2){--class-bg:#eef4ff;--class-border:#d1def8;--class-accent:#4776c5}
+.class-status-card:nth-child(5n+3){--class-bg:#fff7e9;--class-border:#f1dfb9;--class-accent:#c58a27}
+.class-status-card:nth-child(5n+4){--class-bg:#f5f0ff;--class-border:#e0d4f6;--class-accent:#8661bf}
+.class-status-card:nth-child(5n){--class-bg:#fff0f0;--class-border:#f2d2d2;--class-accent:#c65c5c}
+.class-status-card:hover { transform:translateY(-3px); box-shadow:0 8px 18px rgba(24,59,43,.13); border-color:var(--class-accent)!important; }
+.class-status-card:focus-visible { outline:3px solid rgba(39,128,82,.25); outline-offset:2px; }
+.class-status-card.is-current { background:#e1f3e8!important; border:2px solid #278052!important; border-left:5px solid #17633d!important; box-shadow:0 3px 12px rgba(39,128,82,.14); }
+.class-status-card .class-status-title { font-size:14px; line-height:1.35; font-weight:800; color:#183b2b; }
+.class-status-card .class-status-meta { margin-top:7px; font-size:12px; line-height:1.35; font-weight:700; }
+.class-status-card .class-status-meta.is-complete { color:#187347; }
+.class-status-card .class-status-meta.is-pending { color:#98620b; }
+@media(min-width:640px){.class-status-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(min-width:1024px){.class-status-grid{grid-template-columns:repeat(5,minmax(0,1fr));}}
+@media(max-width:420px){.class-status-grid{gap:9px}.class-status-card{min-height:78px;padding:11px 10px;border-radius:12px!important}.class-status-card .class-status-title{font-size:13px}.class-status-card .class-status-meta{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.class-status-card{transition:none}.class-status-card:hover{transform:none}}
+</style>
+
+
 {% if error %}
 <div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
   {{ error }}
@@ -106,17 +136,15 @@
 {% if class_statuses %}
 <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
   <div class="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-3">Today's class status</div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+  <div class="class-status-grid">
     {% for status in class_statuses %}
     <a href="?class={{ status.name }}"
-      class="border rounded-lg px-3 py-2 hover:border-forest transition {% if status.name == current_class %}border-forest bg-forest/5{% else %}border-gray-200{% endif %}">
-      <div class="font-semibold text-forest-deep text-sm">Class {{ status.name }}</div>
+      class="class-status-card {% if status.name == current_class %}is-current{% endif %}">
+      <div class="class-status-title">Class {{ status.name }}</div>
       {% if status.is_complete %}
-      <div class="text-xs text-present font-semibold mt-1">Complete · {{ status.student_count }}</div>
+      <div class="class-status-meta is-complete">Complete · {{ status.student_count }}</div>
       {% else %}
-      <div class="text-xs text-amber-700 font-semibold mt-1">
-        Pending: {{ status.attendance_count }}/{{ status.student_count }}
-      </div>
+      <div class="class-status-meta is-pending">Pending: {{ status.attendance_count }}/{{ status.student_count }}</div>
       {% endif %}
     </a>
     {% endfor %}
