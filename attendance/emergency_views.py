@@ -75,21 +75,22 @@ def emergency_sms(request):
             billed_segments = 0
             segments_per_message = sms_segment_count(full_message)
             for student in with_phone:
+                billing_log = None
                 try:
+                    # Record the exact billable units before sending; never send an untracked SMS.
+                    billing_log = EmergencySmsLog.objects.create(sms_segments=segments_per_message)
                     success, _detail = send_sms(student.parent_mobile, full_message)
                     if success:
                         sent += 1
                         billed_segments += segments_per_message
-                        try:
-                            EmergencySmsLog.objects.create(sms_segments=segments_per_message)
-                        except Exception:
-                            # Do not misreport a successfully delivered SMS if only logging fails.
-                            logger.exception("Could not save emergency SMS log for student id=%s", student.pk)
                     else:
+                        billing_log.delete()
                         failed += 1
                 except Exception:
+                    if billing_log is not None:
+                        billing_log.delete()
                     failed += 1
-                    logger.exception("Emergency SMS failed for student id=%s", student.pk)
+                    logger.exception("Emergency SMS failed or billing log could not be saved for student id=%s", student.pk)
 
             messages.success(
                 request,
