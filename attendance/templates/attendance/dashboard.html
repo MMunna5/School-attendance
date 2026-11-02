@@ -587,6 +587,44 @@
         .dash-link-title{font-size:13px!important}
     }
 
+
+    /* Compact dashboard layout: keep Quick Access and the full footer in view */
+    .today-summary-heading{padding:8px 11px!important}
+    .today-summary-grid{padding:6px!important;gap:6px!important;margin-bottom:8px!important}
+    .today-summary-grid>div{padding:7px 6px!important}
+    .today-summary-grid>div>div:first-child{font-size:9px!important}
+    .quick-access-heading{margin:0 0 6px!important}
+    .quick-access-heading h2{font-size:12px!important}
+    .dash-section{padding:8px 11px!important;margin-bottom:7px!important;border-radius:11px!important}
+    .dash-section-head{gap:7px!important;margin-bottom:6px!important}
+    .dash-section-icon{width:29px!important;height:29px!important;border-radius:8px!important}
+    .dash-section-head h3{font-size:13px!important;line-height:1.2!important}
+    .dash-links{gap:7px!important}
+    .dash-link{min-height:48px!important;padding:7px 9px!important;gap:7px!important;border-radius:9px!important}
+    .dash-link-icon{width:27px!important;height:27px!important;border-radius:7px!important}
+    .dash-link-icon svg{width:15px!important;height:15px!important}
+    .dash-link-title{font-size:12px!important;line-height:1.2!important;font-weight:750!important}
+    .dash-arrow{font-size:17px!important}
+    .dash-section:last-of-type{margin-bottom:0!important}
+    @media(min-width:768px){
+        main{padding-bottom:4px!important}
+    }
+    @media(max-width:767px){
+        .dash-section{padding:8px!important;margin-bottom:7px!important}
+        .dash-link{min-height:46px!important;padding:6px 7px!important}
+        .dash-link-title{font-size:11px!important}
+        .today-summary-grid>div{padding:7px 4px!important}
+    }
+    @media(max-height:820px) and (min-width:768px){
+        .today-summary-heading{padding:7px 10px!important}
+        .today-summary-grid{padding:5px!important;margin-bottom:6px!important}
+        .today-summary-grid>div{padding:6px!important}
+        .dash-section{padding:7px 10px!important;margin-bottom:6px!important}
+        .dash-section-head{margin-bottom:5px!important}
+        .dash-link{min-height:44px!important;padding:6px 8px!important}
+        .quick-access-heading{margin-bottom:5px!important}
+    }
+
 </style>
 
 {% if teacher %}
