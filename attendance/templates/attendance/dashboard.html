@@ -663,7 +663,13 @@
       .dash-section-head{margin-bottom:6px!important}
       .dash-link{min-height:80px!important;padding:13px 14px!important}
     }
-  </style>
+  
+    /* Larger titles for the three student Quick Access actions only */
+    .student-section .dash-link-title{font-size:18px!important;line-height:1.35!important}
+    @media(max-width:767px){
+      .student-section .dash-link-title{font-size:16.5px!important;line-height:1.35!important}
+    }
+</style>
 
 {% if teacher %}
 <div class="mb-2 flex items-center justify-between gap-2">
