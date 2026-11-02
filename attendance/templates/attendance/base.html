@@ -182,7 +182,7 @@
 </head>
 
 
-<body class="bg-paper min-h-screen text-ink">
+<body class="bg-paper min-h-screen text-ink flex flex-col">
 
     <!-- ================= HEADER ================= -->
 
@@ -319,7 +319,7 @@
 
     <!-- ================= MAIN CONTENT ================= -->
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-0 sm:pt-5 sm:pb-1">
+    <main class="max-w-7xl w-full flex-1 mx-auto px-4 sm:px-6 pt-4 pb-0 sm:pt-5 sm:pb-1">
 
         {% block content %}{% endblock %}
 
@@ -370,7 +370,7 @@
         }
     </style>
 
-    <footer class="developer-credit flex items-center justify-center gap-1 px-3 py-2 text-[10px] sm:text-[11px]">
+    <footer class="developer-credit mt-auto flex items-center justify-center gap-1 px-3 py-2 text-[10px] sm:text-[11px]">
         <span class="font-medium">Developed by</span>
         <a href="https://github.com/MMunna5" target="_blank" rel="noopener noreferrer"
             class="developer-link" aria-label="Munna on GitHub">
