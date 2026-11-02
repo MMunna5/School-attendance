@@ -289,6 +289,69 @@
         .dash-link:hover,main a.rounded-xl:hover{transform:none!important}
     }
 
+
+    /* Quick Access: one cohesive deep-navy palette, with restrained category accents */
+    .quick-access-heading h2{color:#24364b!important}
+    .quick-access-heading>span{color:#718096!important}
+    .dash-section.student-section,
+    .dash-section.teacher-section,
+    .dash-section.tools-section{
+        background:#e8edf3!important;
+        border:1px solid #cbd5e1!important;
+        border-top:3px solid #496783!important;
+        box-shadow:0 3px 10px rgba(22,42,64,.055)!important
+    }
+    .dash-section.teacher-section{border-top-color:#477b70!important}
+    .dash-section.tools-section{border-top-color:#9a8052!important}
+    .student-section .dash-section-icon,
+    .teacher-section .dash-section-icon,
+    .tools-section .dash-section-icon{
+        background:#d5dee8!important;color:#304b66!important
+    }
+    .teacher-section .dash-section-icon{background:#d7e4df!important;color:#315f53!important}
+    .tools-section .dash-section-icon{background:#e7e0d3!important;color:#735d39!important}
+    .student-section .dash-section-head h3,
+    .teacher-section .dash-section-head h3,
+    .tools-section .dash-section-head h3{color:#263c52!important}
+    .student-section .dash-section-head>span:last-child,
+    .teacher-section .dash-section-head>span:last-child,
+    .tools-section .dash-section-head>span:last-child{color:#718096!important}
+    .student-section .dash-link,
+    .teacher-section .dash-link,
+    .tools-section .dash-link{
+        background:#fff!important;
+        border:1px solid #cbd5e1!important;
+        box-shadow:0 1px 3px rgba(24,43,65,.055)!important
+    }
+    .student-section .dash-link-icon,
+    .teacher-section .dash-link-icon,
+    .tools-section .dash-link-icon{
+        background:#e5ebf2!important;color:#304d69!important
+    }
+    .teacher-section .dash-link-icon{background:#e4eee9!important;color:#356354!important}
+    .tools-section .dash-link-icon{background:#eee9df!important;color:#78613e!important}
+    .student-section .dash-link-title,
+    .teacher-section .dash-link-title,
+    .tools-section .dash-link-title{color:#263c52!important}
+    .student-section .dash-arrow,
+    .teacher-section .dash-arrow,
+    .tools-section .dash-arrow{color:#6c8196!important}
+    .tools-section .dash-link:last-child,
+    .tools-section .dash-link:last-child .dash-link-icon{background:#fff!important}
+    .tools-section .dash-link:last-child .dash-link-icon{background:#f1e9dc!important;color:#80613b!important}
+    .tools-section .dash-link:last-child .dash-link-title{color:#263c52!important}
+    .tools-section .dash-link:last-child .dash-arrow{color:#80613b!important}
+    @media(hover:hover) and (pointer:fine){
+        .student-section .dash-link:hover,
+        .teacher-section .dash-link:hover,
+        .tools-section .dash-link:hover{
+            background:#f7f9fc!important;
+            border-color:#718ba5!important;
+            box-shadow:0 12px 24px rgba(24,43,65,.16)!important
+        }
+        .teacher-section .dash-link:hover{border-color:#6d9a89!important}
+        .tools-section .dash-link:hover{border-color:#aa936d!important}
+    }
 </style>
 
 {% if teacher %}
