@@ -1011,20 +1011,26 @@ def mark_teacher_attendance(request):
                     teacher__employment_type=employment_type,
                 ).exists()
                 if not already_marked:
-                    section_teachers = Teacher.objects.filter(employment_type=employment_type).order_by('id')
+                    section_teachers = list(
+                        Teacher.objects.filter(employment_type=employment_type).order_by('id')
+                    )
                     absent_teachers = []
-                    for teacher in section_teachers:
-                        status = request.POST.get(f'tatt_{teacher.id}', 'present')
-                        is_present = status == 'present'
+                    attendance_rows = []
 
-                        TeacherAttendance.objects.update_or_create(
+                    for teacher in section_teachers:
+                        status = request.POST.get(f'att_{teacher.id}', 'present')
+                        is_present = status == 'present'
+                        attendance_rows.append(TeacherAttendance(
                             teacher=teacher,
                             date=today,
-                            defaults={'is_present': is_present}
-                        )
+                            is_present=is_present,
+                        ))
 
                         if not is_present:
                             absent_teachers.append(teacher)
+
+                    if attendance_rows:
+                        TeacherAttendance.objects.bulk_create(attendance_rows, ignore_conflicts=True)
 
                     queued_messages = TeacherAbsenceSms.objects.bulk_create(
                         [TeacherAbsenceSms(teacher=teacher, date=today) for teacher in absent_teachers],
