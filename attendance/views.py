@@ -1619,9 +1619,11 @@ def sms_status(request):
     # Aggregate each table once per year in SQL. Avoid loading every segment
     # value into Python and avoid repeating the same queries for 12 months.
     def sent_month_map(model, year_value, status_value=None):
+        year_start = timezone.make_aware(datetime.datetime(year_value, 1, 1))
+        next_year_start = timezone.make_aware(datetime.datetime(year_value + 1, 1, 1))
         qs = model.objects.filter(
-            sent_at__isnull=False,
-            sent_at__year=year_value,
+            sent_at__gte=year_start,
+            sent_at__lt=next_year_start,
         )
         if status_value is not None:
             qs = qs.filter(status=status_value)
@@ -1714,11 +1716,24 @@ def sms_status(request):
     year_options = list(range(max(2020, current_year - 5), current_year + 2))
 
     def queue_count(model, status_value):
-        return model.objects.filter(
-            status=status_value,
-            created_at__year=selected_year,
-            created_at__month__in=selected_months,
-        ).count()
+        # Use indexed datetime ranges instead of EXTRACT(year/month), which
+        # prevents PostgreSQL from efficiently using a normal created_at index.
+        month_ranges = Q()
+        for month_value in selected_months:
+            month_start = timezone.make_aware(
+                datetime.datetime(selected_year, month_value, 1)
+            )
+            if month_value == 12:
+                month_end = timezone.make_aware(
+                    datetime.datetime(selected_year + 1, 1, 1)
+                )
+            else:
+                month_end = timezone.make_aware(
+                    datetime.datetime(selected_year, month_value + 1, 1)
+                )
+            month_ranges |= Q(created_at__gte=month_start, created_at__lt=month_end)
+
+        return model.objects.filter(status=status_value).filter(month_ranges).count()
 
     counts = {
         'student': {
