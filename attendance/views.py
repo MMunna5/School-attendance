@@ -198,17 +198,23 @@ def dashboard(request):
         teacher_classes = teacher.get_class_list()
         students = Student.objects.filter(class_name__in=teacher_classes)
         total_students = students.count()
-        attendance_today = Attendance.objects.filter(
+        attendance_totals = Attendance.objects.filter(
             student__class_name__in=teacher_classes,
-            date=today
+            date=today,
+        ).aggregate(
+            present=Count('id', filter=Q(is_present=True)),
+            absent=Count('id', filter=Q(is_present=False)),
         )
-        present_count = attendance_today.filter(is_present=True).count()
-        absent_count = attendance_today.filter(is_present=False).count()
+        present_count = attendance_totals['present'] or 0
+        absent_count = attendance_totals['absent'] or 0
 
     if request.user.is_staff:
-        all_today = Attendance.objects.filter(date=today)
-        admin_present = all_today.filter(is_present=True).count()
-        admin_absent = all_today.filter(is_present=False).count()
+        admin_totals = Attendance.objects.filter(date=today).aggregate(
+            present=Count('id', filter=Q(is_present=True)),
+            absent=Count('id', filter=Q(is_present=False)),
+        )
+        admin_present = admin_totals['present'] or 0
+        admin_absent = admin_totals['absent'] or 0
         admin_total = Student.objects.count()
     else:
         admin_present = admin_absent = admin_total = 0
@@ -1258,10 +1264,21 @@ def attendance_history(request):
             if roll_filter:
                 students_qs = students_qs.filter(roll_no__icontains=roll_filter)
             students = list(students_qs.order_by('section', 'roll_no'))
+            monthly_counts = {
+                row['student_id']: row
+                for row in Attendance.objects.filter(
+                    student__in=students,
+                    date__year=year,
+                    date__month=month,
+                ).values('student_id').annotate(
+                    present=Count('id', filter=Q(is_present=True)),
+                    absent=Count('id', filter=Q(is_present=False)),
+                )
+            }
             for student in students:
-                qs = Attendance.objects.filter(student=student, date__year=year, date__month=month)
-                present = qs.filter(is_present=True).count()
-                absent = qs.filter(is_present=False).count()
+                counts = monthly_counts.get(student.id, {})
+                present = counts.get('present', 0)
+                absent = counts.get('absent', 0)
                 records.append({
                     'student': student,
                     'present': present,
@@ -1823,11 +1840,22 @@ def class_history(request):
 
     if view_mode == 'month':
         year, month, month_str = _month_bounds(request.GET.get('month'))
+        monthly_counts = {
+            row['student_id']: row
+            for row in Attendance.objects.filter(
+                student__in=students,
+                date__year=year,
+                date__month=month,
+            ).values('student_id').annotate(
+                present=Count('id', filter=Q(is_present=True)),
+                absent=Count('id', filter=Q(is_present=False)),
+            )
+        }
         records = []
         for student in students:
-            qs = Attendance.objects.filter(student=student, date__year=year, date__month=month)
-            present = qs.filter(is_present=True).count()
-            absent = qs.filter(is_present=False).count()
+            counts = monthly_counts.get(student.id, {})
+            present = counts.get('present', 0)
+            absent = counts.get('absent', 0)
             records.append({
                 'student': student,
                 'present': present,
