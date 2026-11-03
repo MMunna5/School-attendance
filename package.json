@@ -1,0 +1,1 @@
+{"private":true,"scripts":{"build:css":"tailwindcss -c ./tailwind.config.cjs -i ./assets/tailwind.css -o ./attendance/static/attendance/css/tailwind.min.css --minify"},"devDependencies":{"autoprefixer":"10.4.21","postcss":"8.5.6","tailwindcss":"3.4.17"}}
