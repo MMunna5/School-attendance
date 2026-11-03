@@ -91,6 +91,10 @@ class AbsenceSms(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['student', 'date'], name='unique_absence_sms_per_day'),
         ]
+        indexes = [
+            models.Index(fields=['status', 'created_at'], name='sms_status_created_idx'),
+            models.Index(fields=['status', 'sent_at'], name='sms_status_sent_idx'),
+        ]
         ordering = ['created_at']
 
     def __str__(self):
@@ -121,6 +125,10 @@ class TeacherAbsenceSms(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['teacher', 'date'], name='unique_teacher_absence_sms_per_day'),
         ]
+        indexes = [
+            models.Index(fields=['status', 'created_at'], name='teacher_sms_created_idx'),
+            models.Index(fields=['status', 'sent_at'], name='teacher_sms_sent_idx'),
+        ]
         ordering = ['created_at']
 
     def __str__(self):
@@ -149,6 +157,9 @@ class EmergencySmsLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=['sent_at'], name='emergency_sms_sent_idx'),
+        ]
         ordering = ['-created_at']
 
     def __str__(self):
