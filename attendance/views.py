@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Sum, Q
 import time
@@ -1616,34 +1617,46 @@ def sms_status(request):
         'July', 'August', 'September', 'October', 'November', 'December',
     ]
 
-    # Aggregate each table once per year in SQL. Avoid loading every segment
-    # value into Python and avoid repeating the same queries for 12 months.
+    # Billing aggregates change only when SMS delivery records change. Cache
+    # these read-heavy summaries briefly so opening/reloading this page does not
+    # repeatedly scan the complete SMS history. Queue lists and retry actions
+    # remain live; the billing cards refresh automatically within 15 seconds.
     def sent_month_map(model, year_value, status_value=None):
-        year_start = timezone.make_aware(datetime.datetime(year_value, 1, 1))
-        next_year_start = timezone.make_aware(datetime.datetime(year_value + 1, 1, 1))
-        qs = model.objects.filter(
-            sent_at__gte=year_start,
-            sent_at__lt=next_year_start,
-        )
-        if status_value is not None:
-            qs = qs.filter(status=status_value)
-        return {
-            row['sent_at__month']: {
-                'total': row['total'] or 0,
-                'segments': row['segments'] or 0,
-            }
-            for row in qs.values('sent_at__month').annotate(
-                total=Count('pk'),
-                segments=Sum('sms_segments'),
+        cache_key = f"sms_status:monthly:{model._meta.label_lower}:{year_value}:{status_value or 'all'}"
+
+        def calculate():
+            year_start = timezone.make_aware(datetime.datetime(year_value, 1, 1))
+            next_year_start = timezone.make_aware(datetime.datetime(year_value + 1, 1, 1))
+            qs = model.objects.filter(
+                sent_at__gte=year_start,
+                sent_at__lt=next_year_start,
             )
-        }
+            if status_value is not None:
+                qs = qs.filter(status=status_value)
+            return {
+                row['sent_at__month']: {
+                    'total': row['total'] or 0,
+                    'segments': row['segments'] or 0,
+                }
+                for row in qs.values('sent_at__month').annotate(
+                    total=Count('pk'),
+                    segments=Sum('sms_segments'),
+                )
+            }
+
+        return cache.get_or_set(cache_key, calculate, timeout=15)
 
     def all_time_totals(model, status_value=None):
-        qs = model.objects.filter(sent_at__isnull=False)
-        if status_value is not None:
-            qs = qs.filter(status=status_value)
-        result = qs.aggregate(total=Count('pk'), segments=Sum('sms_segments'))
-        return {'total': result['total'] or 0, 'segments': result['segments'] or 0}
+        cache_key = f"sms_status:all_time:{model._meta.label_lower}:{status_value or 'all'}"
+
+        def calculate():
+            qs = model.objects.filter(sent_at__isnull=False)
+            if status_value is not None:
+                qs = qs.filter(status=status_value)
+            result = qs.aggregate(total=Count('pk'), segments=Sum('sms_segments'))
+            return {'total': result['total'] or 0, 'segments': result['segments'] or 0}
+
+        return cache.get_or_set(cache_key, calculate, timeout=15)
 
     def totals_for_months(student_map, teacher_map, emergency_map, months):
         student = {
@@ -1715,9 +1728,9 @@ def sms_status(request):
     selected_month_labels = ', '.join(month_names[m - 1] for m in selected_months)
     year_options = list(range(max(2020, current_year - 5), current_year + 2))
 
-    def queue_count(model, status_value):
-        # Use indexed datetime ranges instead of EXTRACT(year/month), which
-        # prevents PostgreSQL from efficiently using a normal created_at index.
+    def queue_counts(model):
+        # One indexed aggregate query per SMS type instead of separate COUNT
+        # queries for failed and pending queues.
         month_ranges = Q()
         for month_value in selected_months:
             month_start = timezone.make_aware(
@@ -1733,19 +1746,25 @@ def sms_status(request):
                 )
             month_ranges |= Q(created_at__gte=month_start, created_at__lt=month_end)
 
-        return model.objects.filter(status=status_value).filter(month_ranges).count()
+        result = model.objects.filter(month_ranges).aggregate(
+            failed=Count('pk', filter=Q(status=model.STATUS_FAILED)),
+            pending=Count('pk', filter=Q(status=model.STATUS_PENDING)),
+        )
+        return {'failed': result['failed'] or 0, 'pending': result['pending'] or 0}
 
+    student_queue = queue_counts(AbsenceSms)
+    teacher_queue = queue_counts(TeacherAbsenceSms)
     counts = {
         'student': {
             'sent': selected_totals['student'],
-            'failed': queue_count(AbsenceSms, AbsenceSms.STATUS_FAILED),
-            'pending': queue_count(AbsenceSms, AbsenceSms.STATUS_PENDING),
+            'failed': student_queue['failed'],
+            'pending': student_queue['pending'],
             'segments': selected_totals['student_segments'],
         },
         'teacher': {
             'sent': selected_totals['teacher'],
-            'failed': queue_count(TeacherAbsenceSms, TeacherAbsenceSms.STATUS_FAILED),
-            'pending': queue_count(TeacherAbsenceSms, TeacherAbsenceSms.STATUS_PENDING),
+            'failed': teacher_queue['failed'],
+            'pending': teacher_queue['pending'],
             'segments': selected_totals['teacher_segments'],
         },
     }
