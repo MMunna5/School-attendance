@@ -759,6 +759,20 @@
 .teacher-section .dash-link:nth-child(n) .dash-link-icon svg,
 .tools-section .dash-link:nth-child(n) .dash-link-icon svg{color:#fff!important;stroke:currentColor!important}
 
+
+    /* Keep the Bulk SMS/Notice card readable when hovered */
+    @media (hover:hover) and (pointer:fine){
+        .tools-section .dash-link:last-child:hover{
+            background:#4b5874!important;
+            border-color:#3b465d!important;
+        }
+        .tools-section .dash-link:last-child:hover .dash-link-title,
+        .tools-section .dash-link:last-child:hover .dash-arrow{color:#fff!important}
+        .tools-section .dash-link:last-child:hover .dash-link-icon{
+            background:rgba(255,255,255,.16)!important;color:#fff!important;
+        }
+    }
+
 </style>
 
 {% if teacher %}
