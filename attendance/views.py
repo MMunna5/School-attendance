@@ -1746,7 +1746,10 @@ def sms_status(request):
                 )
             month_ranges |= Q(created_at__gte=month_start, created_at__lt=month_end)
 
-        result = model.objects.filter(month_ranges).aggregate(
+        result = model.objects.filter(
+            month_ranges,
+            status__in=[model.STATUS_FAILED, model.STATUS_PENDING],
+        ).aggregate(
             failed=Count('pk', filter=Q(status=model.STATUS_FAILED)),
             pending=Count('pk', filter=Q(status=model.STATUS_PENDING)),
         )
