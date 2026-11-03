@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 import time
 from django.conf import settings
 from .models import AbsenceSms, TeacherAbsenceSms, EmergencySmsLog, Teacher, Student, Attendance, TeacherAttendance
@@ -1089,8 +1089,8 @@ def teacher_attendance_history(request):
         for row in TeacherAttendance.objects.filter(
             date__year=year, date__month=month
         ).values('teacher_id').annotate(
-            present=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(is_present=True)),
-            absent=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(is_present=False)),
+            present=Count('id', filter=Q(is_present=True)),
+            absent=Count('id', filter=Q(is_present=False)),
         )
     }
     records = [
