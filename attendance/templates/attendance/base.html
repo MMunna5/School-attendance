@@ -178,6 +178,49 @@
             }
         }
     
+        /* Global interaction states: every real button gets a consistent hover/focus feel. */
+        button:not(:disabled),
+        input[type="button"]:not(:disabled),
+        input[type="submit"]:not(:disabled),
+        a[role="button"],
+        .nav-btn {
+            cursor: pointer;
+            transition: transform .16s ease, box-shadow .16s ease,
+                        background-color .16s ease, border-color .16s ease,
+                        color .16s ease, filter .16s ease;
+        }
+        button:not(:disabled):hover,
+        input[type="button"]:not(:disabled):hover,
+        input[type="submit"]:not(:disabled):hover,
+        a[role="button"]:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 13px rgba(20, 41, 31, .16);
+            filter: brightness(.97);
+        }
+        .nav-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 9px rgba(0, 0, 0, .16);
+        }
+        button:active:not(:disabled),
+        input[type="button"]:active:not(:disabled),
+        input[type="submit"]:active:not(:disabled),
+        a[role="button"]:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(20, 41, 31, .12);
+        }
+        button:disabled,
+        input[type="button"]:disabled,
+        input[type="submit"]:disabled {
+            cursor: not-allowed;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            button, input[type="button"], input[type="submit"], a[role="button"], .nav-btn {
+                transition: none !important;
+            }
+            button:hover, input[type="button"]:hover, input[type="submit"]:hover,
+            a[role="button"]:hover, .nav-btn:hover { transform: none !important; }
+        }
+
         /* Match the school-name typography used on the login page */
         .school-brand-name{
             font-family:'Special Elite',monospace!important;
