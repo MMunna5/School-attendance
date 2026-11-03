@@ -1264,12 +1264,14 @@ def attendance_history(request):
             if roll_filter:
                 students_qs = students_qs.filter(roll_no__icontains=roll_filter)
             students = list(students_qs.order_by('section', 'roll_no'))
+            month_start = datetime.date(year, month, 1)
+            next_month_start = datetime.date(year + (month // 12), (month % 12) + 1, 1)
             monthly_counts = {
                 row['student_id']: row
                 for row in Attendance.objects.filter(
                     student__in=students,
-                    date__year=year,
-                    date__month=month,
+                    date__gte=month_start,
+                    date__lt=next_month_start,
                 ).values('student_id').annotate(
                     present=Count('id', filter=Q(is_present=True)),
                     absent=Count('id', filter=Q(is_present=False)),
@@ -1840,12 +1842,14 @@ def class_history(request):
 
     if view_mode == 'month':
         year, month, month_str = _month_bounds(request.GET.get('month'))
+        month_start = datetime.date(year, month, 1)
+        next_month_start = datetime.date(year + (month // 12), (month % 12) + 1, 1)
         monthly_counts = {
             row['student_id']: row
             for row in Attendance.objects.filter(
                 student__in=students,
-                date__year=year,
-                date__month=month,
+                date__gte=month_start,
+                date__lt=next_month_start,
             ).values('student_id').annotate(
                 present=Count('id', filter=Q(is_present=True)),
                 absent=Count('id', filter=Q(is_present=False)),
