@@ -741,6 +741,24 @@
  .student-section .dash-link:hover,.teacher-section .dash-link:hover,.tools-section .dash-link:hover{filter:brightness(1.09)}
 }
 
+
+/* Final contrast override: keep every card label readable on deep backgrounds */
+.student-section .dash-link:nth-child(1) .dash-link-title,.student-section .dash-link:nth-child(1) .dash-arrow,
+.student-section .dash-link:nth-child(2) .dash-link-title,.student-section .dash-link:nth-child(2) .dash-arrow,
+.student-section .dash-link:nth-child(3) .dash-link-title,.student-section .dash-link:nth-child(3) .dash-arrow,
+.teacher-section .dash-link:nth-child(1) .dash-link-title,.teacher-section .dash-link:nth-child(1) .dash-arrow,
+.teacher-section .dash-link:nth-child(2) .dash-link-title,.teacher-section .dash-link:nth-child(2) .dash-arrow,
+.teacher-section .dash-link:nth-child(3) .dash-link-title,.teacher-section .dash-link:nth-child(3) .dash-arrow,
+.tools-section .dash-link:nth-child(1) .dash-link-title,.tools-section .dash-link:nth-child(1) .dash-arrow,
+.tools-section .dash-link:nth-child(2) .dash-link-title,.tools-section .dash-link:nth-child(2) .dash-arrow,
+.tools-section .dash-link:nth-child(3) .dash-link-title,.tools-section .dash-link:nth-child(3) .dash-arrow{color:#fff!important}
+.student-section .dash-link:nth-child(n) .dash-link-icon,
+.teacher-section .dash-link:nth-child(n) .dash-link-icon,
+.tools-section .dash-link:nth-child(n) .dash-link-icon{background:rgba(255,255,255,.18)!important;color:#fff!important}
+.student-section .dash-link:nth-child(n) .dash-link-icon svg,
+.teacher-section .dash-link:nth-child(n) .dash-link-icon svg,
+.tools-section .dash-link:nth-child(n) .dash-link-icon svg{color:#fff!important;stroke:currentColor!important}
+
 </style>
 
 {% if teacher %}
