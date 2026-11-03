@@ -7,7 +7,6 @@
 <div class="text-sm text-green-100 mt-1">{{ today|date:"l, d F Y" }}</div>
 {% endblock %}
 {% block header_links %}
-<a href="{% url 'dashboard' %}" class="nav-btn">Dashboard</a>
 <form method="post" action="{% url 'logout' %}" class="inline">
     {% csrf_token %}
     <button type="submit" class="nav-btn nav-btn-danger">Log Out</button>
