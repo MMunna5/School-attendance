@@ -1081,12 +1081,26 @@ def teacher_attendance_history(request):
     year, month, month_str = _month_bounds(request.GET.get('month'))
 
     teachers = Teacher.objects.all().order_by('id')
-    records = []
-    for teacher in teachers:
-        qs = TeacherAttendance.objects.filter(teacher=teacher, date__year=year, date__month=month)
-        present = qs.filter(is_present=True).count()
-        absent = qs.filter(is_present=False).count()
-        records.append({'teacher': teacher, 'present': present, 'absent': absent})
+    attendance_counts = {
+        row['teacher_id']: {
+            'present': row['present'],
+            'absent': row['absent'],
+        }
+        for row in TeacherAttendance.objects.filter(
+            date__year=year, date__month=month
+        ).values('teacher_id').annotate(
+            present=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(is_present=True)),
+            absent=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(is_present=False)),
+        )
+    }
+    records = [
+        {
+            'teacher': teacher,
+            'present': attendance_counts.get(teacher.id, {}).get('present', 0),
+            'absent': attendance_counts.get(teacher.id, {}).get('absent', 0),
+        }
+        for teacher in teachers
+    ]
 
     return render(request, 'attendance/teacher_attendance_history.html', {
         'records': records,
