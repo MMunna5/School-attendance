@@ -998,18 +998,37 @@ def mark_teacher_attendance(request):
                 section_teachers = list(Teacher.objects.filter(
                     employment_type=employment_type
                 ).order_by('id'))
-                absent_teachers = []
+                existing = {
+                    row.teacher_id: row
+                    for row in TeacherAttendance.objects.select_for_update().filter(
+                        teacher__in=section_teachers, date=today
+                    )
+                }
+                newly_absent_teachers = []
                 for teacher in section_teachers:
                     is_present = request.POST.get(f'att_{teacher.id}', 'present') == 'present'
-                    TeacherAttendance.objects.update_or_create(
-                        teacher=teacher, date=today,
-                        defaults={'is_present': is_present},
-                    )
-                    if not is_present:
-                        absent_teachers.append(teacher)
-                if absent_teachers:
+                    previous = existing.get(teacher.id)
+
+                    if previous is None:
+                        TeacherAttendance.objects.create(
+                            teacher=teacher, date=today, is_present=is_present
+                        )
+                        if not is_present:
+                            newly_absent_teachers.append(teacher)
+                    elif previous.is_present != is_present:
+                        previous.is_present = is_present
+                        previous.save(update_fields=['is_present'])
+                        # Queue an alert only for a Present -> Absent change.
+                        # Absent -> Present never sends an SMS.
+                        if not is_present:
+                            newly_absent_teachers.append(teacher)
+
+                if newly_absent_teachers:
                     queued = TeacherAbsenceSms.objects.bulk_create(
-                        [TeacherAbsenceSms(teacher=teacher, date=today) for teacher in absent_teachers],
+                        [
+                            TeacherAbsenceSms(teacher=teacher, date=today)
+                            for teacher in newly_absent_teachers
+                        ],
                         ignore_conflicts=True,
                     )
                     sms_queued_count = len(queued)
@@ -1043,22 +1062,6 @@ def mark_teacher_attendance(request):
         'part_present': part_present, 'part_absent': part_absent,
         'total_teachers': teachers.count(),
     })
-
-@login_required
-@user_passes_test(is_admin)
-def reset_today_teacher_attendance(request):
-    """Admin-only reset of today's teacher attendance rows; SMS history is preserved."""
-    if request.method != 'POST':
-        return redirect('mark_teacher_attendance')
-
-    today = local_today()
-    deleted_count, _ = TeacherAttendance.objects.filter(date=today).delete()
-    logger.warning(
-        "Admin %s reset today's teacher attendance (%s rows) for %s",
-        request.user.username, deleted_count, today,
-    )
-    return redirect('mark_teacher_attendance')
-
 
 @login_required
 @user_passes_test(is_admin)
