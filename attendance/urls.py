@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin-panel/teacher-attendance/', views.mark_teacher_attendance, name='mark_teacher_attendance'),
     path('admin-panel/teacher-attendance-history/', views.teacher_attendance_history, name='teacher_attendance_history'),
     path('admin-panel/teacher-attendance-history/<int:teacher_id>/', views.teacher_history_detail, name='teacher_history_detail'),
+    path('admin-panel/teacher-attendance/<int:teacher_id>/correct/', views.correct_teacher_attendance, name='correct_teacher_attendance'),
     path('admin-panel/teacher-attendance-export/', views.export_teacher_attendance, name='export_teacher_attendance'),
 
     path('admin-panel/attendance-history/', views.attendance_history, name='attendance_history'),
