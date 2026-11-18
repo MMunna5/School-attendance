@@ -7,6 +7,10 @@
 {% endblock %}
 {% block content %}
 
+<div class="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+    <strong>Attendance correction:</strong> Select a teacher's <strong>View / Change</strong> button to see each date and change Present or Absent.
+</div>
+
 <form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
     <div class="flex-1 min-w-[160px]">
         <label class="block text-xs font-semibold text-ink-soft mb-1.5">Select Month</label>
@@ -51,7 +55,9 @@
             <span class="bg-green-50 text-present font-bold px-3 py-1 rounded-full">{{ r.present }} Present</span>
             <span class="bg-red-50 text-absent font-bold px-3 py-1 rounded-full">{{ r.absent }} Absent</span>
         </div>
-        <div class="sm:col-span-1 text-right text-forest text-xs font-bold">Details →</div>
+        <div class="sm:col-span-1 flex justify-start sm:justify-end">
+            <span class="inline-flex items-center rounded-lg bg-forest px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-forest-deep">View / Change →</span>
+        </div>
     </a>
     {% endfor %}
 </div>
