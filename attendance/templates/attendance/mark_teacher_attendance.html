@@ -23,6 +23,19 @@
 </div>
 {% endif %}
 
+{% if full_already_marked or part_already_marked %}
+<form method="post" action="{% url 'reset_today_teacher_attendance' %}"
+    onsubmit="return confirm('Are you sure? This will delete ALL teacher attendance records for today only. SMS history and previous dates will remain unchanged.');"
+    class="mb-5">
+    {% csrf_token %}
+    <button type="submit"
+        class="w-full sm:w-auto bg-red-50 text-absent border border-red-200 font-bold px-4 py-2.5 rounded-xl hover:bg-red-100 transition">
+        Reset Today's Teacher Attendance
+    </button>
+    <p class="text-xs text-ink-soft mt-2">Admin only · Deletes today's attendance records only. Previous dates and SMS history are kept.</p>
+</form>
+{% endif %}
+
 {% if sms_warning %}
 <div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
     {{ sms_warning }}
