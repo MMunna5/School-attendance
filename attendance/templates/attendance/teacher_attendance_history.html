@@ -7,9 +7,6 @@
 {% endblock %}
 {% block content %}
 
-<div class="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-    <strong>Attendance correction:</strong> Select a teacher's <strong>View / Change</strong> button to see each date and change Present or Absent.
-</div>
 
 <form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap gap-3 items-end">
     <div class="flex-1 min-w-[160px]">
@@ -51,12 +48,9 @@
         <div class="sm:col-span-3 text-ink-soft break-words">
             {% if r.teacher.mobile %}{{ r.teacher.mobile }}{% else %}<span class="text-absent">—</span>{% endif %}
         </div>
-        <div class="sm:col-span-3 flex gap-2 justify-start sm:justify-center flex-wrap text-sm">
+        <div class="sm:col-span-4 flex gap-2 justify-start sm:justify-center flex-wrap text-sm">
             <span class="bg-green-50 text-present font-bold px-3 py-1 rounded-full">{{ r.present }} Present</span>
             <span class="bg-red-50 text-absent font-bold px-3 py-1 rounded-full">{{ r.absent }} Absent</span>
-        </div>
-        <div class="sm:col-span-1 flex justify-start sm:justify-end">
-            <span class="inline-flex items-center rounded-lg bg-forest px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-forest-deep">View / Change →</span>
         </div>
     </a>
     {% endfor %}
