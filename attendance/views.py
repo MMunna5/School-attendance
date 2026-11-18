@@ -457,6 +457,7 @@ def mark_attendance(request):
         'class_statuses': class_statuses,
         'current_class': current_class,
         'already_marked': show_as_locked,
+        'class_has_attendance': already_marked,
         'present_count': present_count,
         'absent_count': absent_count,
         'total_students': len(students) if isinstance(students, list) else students.count(),
