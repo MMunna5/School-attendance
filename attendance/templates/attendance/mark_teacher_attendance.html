@@ -7,13 +7,62 @@
 <div class="text-sm text-green-100 mt-1">{{ today|date:"l, d F Y" }}</div>
 {% endblock %}
 
-
 {% block content %}
+<style>
+.teacher-attendance-row{
+    padding:15px!important; gap:12px!important; border-color:#dce5de!important;
+    border-radius:14px!important; box-shadow:0 2px 7px rgba(27,55,42,.06)!important;
+    transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+.teacher-attendance-row:hover{
+    border-color:#a9c0af!important; box-shadow:0 5px 13px rgba(27,55,42,.10)!important;
+    transform:translateY(-1px);
+}
+.teacher-attendance-row>div:first-child{
+    width:42px!important;height:42px!important;min-width:42px;
+    font-size:14px!important;font-weight:700!important;
+}
+.teacher-attendance-row>div:nth-child(2) .font-semibold{
+    font-size:16px!important;line-height:1.5!important;font-weight:700!important;
+}
+.teacher-attendance-row>div:nth-child(2)>div:not(.font-semibold){
+    font-size:13px!important;line-height:1.45!important;margin-top:2px;
+}
+.teacher-attendance-row .present-option,
+.teacher-attendance-row .absent-option{
+    font-size:13px!important;padding:9px 14px!important;border-radius:9px!important;
+}
+@media(max-width:639px){
+    .teacher-attendance-row{padding:13px!important;gap:10px!important}
+    .teacher-attendance-row>div:nth-child(2) .font-semibold{font-size:16px!important}
+    .teacher-attendance-row>div:nth-child(3){gap:8px!important}
+}
+@media(prefers-reduced-motion:reduce){
+    .teacher-attendance-row{transition:none}
+    .teacher-attendance-row:hover{transform:none}
+}
+</style>
 
-<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-    <div class="text-xs font-semibold text-ink-soft uppercase tracking-wide">Today</div>
-    <div class="text-lg font-bold text-forest-deep">{{ today|date:"l" }}</div>
-    <div class="text-sm text-ink-soft">{{ today|date:"d F Y" }}</div>
+<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+    <div>
+        <div class="text-xs font-semibold text-ink-soft uppercase tracking-wide">Today</div>
+        <div class="text-lg font-bold text-forest-deep">{{ today|date:"l" }}</div>
+        <div class="text-sm text-ink-soft">{{ today|date:"d F Y" }}</div>
+    </div>
+    <div class="flex gap-3">
+        <div class="bg-green-50 text-present font-bold px-4 py-2 rounded-xl text-center">
+            <div class="text-xl">{{ full_present|default:0|add:part_present|default:0 }}</div>
+            <div class="text-xs font-semibold">Present</div>
+        </div>
+        <div class="bg-red-50 text-absent font-bold px-4 py-2 rounded-xl text-center">
+            <div class="text-xl">{{ full_absent|default:0|add:part_absent|default:0 }}</div>
+            <div class="text-xs font-semibold">Absent</div>
+        </div>
+        <div class="bg-gray-50 text-ink-soft font-bold px-4 py-2 rounded-xl text-center">
+            <div class="text-xl">{{ full_total|default:0|add:part_total|default:0 }}</div>
+            <div class="text-xs font-semibold">Total</div>
+        </div>
+    </div>
 </div>
 
 {% if saved %}
@@ -23,174 +72,118 @@
 </div>
 {% endif %}
 
-<div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-3 mb-5 text-sm">
-    Admin can directly change today's Present / Absent status below and save the updated attendance.
-</div>
-
 {% if sms_warning %}
 <div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
     {{ sms_warning }}
 </div>
 {% endif %}
 
-{# ==================== FULL-TIME ==================== #}
-<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">
-        Full-time Teachers · {{ full_total }}
+<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-3">Attendance Summary</div>
+    <div class="grid grid-cols-2 gap-3">
+        <div class="bg-green-50 rounded-xl p-3">
+            <div class="text-sm font-bold text-present">Full-time</div>
+            <div class="text-xs text-ink-soft mt-1">{{ full_present|default:0 }} Present · {{ full_absent|default:0 }} Absent</div>
+        </div>
+        <div class="bg-blue-50 rounded-xl p-3">
+            <div class="text-sm font-bold text-blue-800">Part-time</div>
+            <div class="text-xs text-ink-soft mt-1">{{ part_present|default:0 }} Present · {{ part_absent|default:0 }} Absent</div>
+        </div>
     </div>
-    {% if full_already_marked %}
-    <div class="flex gap-2 text-xs font-bold">
-        <span class="bg-green-50 text-present px-2.5 py-1 rounded-lg">{{ full_present }} Present</span>
-        <span class="bg-red-50 text-absent px-2.5 py-1 rounded-lg">{{ full_absent }} Absent</span>
-    </div>
-    {% endif %}
 </div>
 
-{% if full_already_marked %}
-<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 mb-3 text-sm">
-    Full-time attendance already taken today.
+{# ==================== FULL-TIME ==================== #}
+<div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Full-time Teachers · {{ full_total }}</div>
 </div>
-{% endif %}
 
 {% if full_time_rows %}
-<form method="post"
-    onsubmit="return confirm('Save or update Full-time attendance?');">
+<form method="post" onsubmit="return confirm('Save or update Full-time teacher attendance?');">
     {% csrf_token %}
     <input type="hidden" name="section" value="full">
-
-    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-4">
-        <div
-            class="hidden sm:grid grid-cols-12 gap-2 px-4 py-2.5 bg-forest text-white text-xs font-bold uppercase tracking-wide">
-            <div class="col-span-1">ID</div>
-            <div class="col-span-4">Name</div>
-            <div class="col-span-3">Number</div>
-            <div class="col-span-4 text-center">Attendance</div>
-        </div>
-
+    <div class="space-y-2 mb-5">
         {% for item in full_time_rows %}
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm">
-            <div class="sm:col-span-1 font-mono text-ink-soft">ID: {{ forloop.counter }}</div>
-            <div class="sm:col-span-4 font-semibold text-forest-deep break-words">{{ item.teacher.name }}</div>
-            <div class="sm:col-span-3 text-ink-soft break-words">
-                {% if item.teacher.mobile %}{{ item.teacher.mobile }}{% else %}<span class="text-absent">No
-                    phone</span>{% endif %}
+        <div class="teacher-attendance-row bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
+            <div class="rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
+                {{ forloop.counter }}
             </div>
-            <div class="sm:col-span-4 flex gap-1.5 justify-start sm:justify-center flex-wrap">
-                {% if false %}
-                {% if item.is_present %}
-                <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
+            <div class="flex-1 min-w-[calc(100%-3rem)] sm:min-w-0">
+                <div class="font-semibold text-forest-deep break-words">{{ item.teacher.name }}</div>
+                {% if item.teacher.mobile %}
+                <div class="text-[11px] text-ink-soft">{{ item.teacher.mobile }}</div>
                 {% else %}
-                <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-absent text-white">Absent</span>
+                <div class="text-[11px] text-absent">No phone</div>
                 {% endif %}
-                {% else %}
+                <div class="text-[11px] text-ink-soft">Full-time Teacher</div>
+            </div>
+            <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="present" class="peer sr-only" {% if item.is_present %}checked{% endif %}>
-                    <span
-                        class="block px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
+                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="absent" class="peer sr-only" {% if not item.is_present %}checked{% endif %}>
-                    <span
-                        class="block px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
+                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
                 </label>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
-
-    {% if true %}
-    <button type="submit"
-        class="w-full bg-forest text-white font-bold py-3 rounded-xl shadow-lg hover:bg-forest-deep transition mb-8">
-        {% if full_already_marked %}Update{% else %}Save{% endif %} Full-time Attendance
-    </button>
-    {% else %}
-    <div class="mb-8"></div>
-    {% endif %}
+    <div class="sticky bottom-4 mb-8">
+        <button type="submit" class="w-full bg-forest text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-forest-deep transition text-base">
+            {% if full_already_marked %}Update{% else %}Save{% endif %} Full-time Attendance
+        </button>
+    </div>
 </form>
 {% else %}
-<div class="text-center text-ink-soft py-8 mb-8 bg-white border border-gray-200 rounded-xl text-sm">
-    No full-time teachers.
-</div>
+<div class="text-center text-ink-soft py-8 mb-8 bg-white border border-gray-200 rounded-xl text-sm">No full-time teachers.</div>
 {% endif %}
 
 {# ==================== PART-TIME ==================== #}
-<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">
-        Part-time Teachers · {{ part_total }}
-    </div>
-    {% if part_already_marked %}
-    <div class="flex gap-2 text-xs font-bold">
-        <span class="bg-green-50 text-present px-2.5 py-1 rounded-lg">{{ part_present }} Present</span>
-        <span class="bg-red-50 text-absent px-2.5 py-1 rounded-lg">{{ part_absent }} Absent</span>
-    </div>
-    {% endif %}
+<div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <div class="font-display text-[11px] tracking-widest uppercase text-ink-soft">Part-time Teachers · {{ part_total }}</div>
 </div>
-
-{% if part_already_marked %}
-<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 mb-3 text-sm">
-    Part-time attendance already taken today.
-</div>
-{% endif %}
 
 {% if part_time_rows %}
-<form method="post"
-    onsubmit="return confirm('Save or update Part-time attendance?');">
+<form method="post" onsubmit="return confirm('Save or update Part-time teacher attendance?');">
     {% csrf_token %}
     <input type="hidden" name="section" value="part">
-
-    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-4">
-        <div
-            class="hidden sm:grid grid-cols-12 gap-2 px-4 py-2.5 bg-forest text-white text-xs font-bold uppercase tracking-wide">
-            <div class="col-span-1">ID</div>
-            <div class="col-span-4">Name</div>
-            <div class="col-span-3">Number</div>
-            <div class="col-span-4 text-center">Attendance</div>
-        </div>
-
+    <div class="space-y-2 mb-5">
         {% for item in part_time_rows %}
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 items-center border-t border-gray-100 text-sm">
-            <div class="sm:col-span-1 font-mono text-ink-soft">ID: {{ full_time_rows|length|add:forloop.counter }}</div>
-            <div class="sm:col-span-4 font-semibold text-forest-deep break-words">{{ item.teacher.name }}</div>
-            <div class="sm:col-span-3 text-ink-soft break-words">
-                {% if item.teacher.mobile %}{{ item.teacher.mobile }}{% else %}<span class="text-absent">No
-                    phone</span>{% endif %}
+        <div class="teacher-attendance-row bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap sm:flex-nowrap items-center gap-3 shadow-sm">
+            <div class="rounded-full border-2 border-gold flex items-center justify-center text-xs font-bold text-gold flex-shrink-0 bg-gold/5">
+                {{ full_time_rows|length|add:forloop.counter }}
             </div>
-            <div class="sm:col-span-4 flex gap-1.5 justify-start sm:justify-center flex-wrap">
-                {% if false %}
-                {% if item.is_present %}
-                <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
+            <div class="flex-1 min-w-[calc(100%-3rem)] sm:min-w-0">
+                <div class="font-semibold text-forest-deep break-words">{{ item.teacher.name }}</div>
+                {% if item.teacher.mobile %}
+                <div class="text-[11px] text-ink-soft">{{ item.teacher.mobile }}</div>
                 {% else %}
-                <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-absent text-white">Absent</span>
+                <div class="text-[11px] text-absent">No phone</div>
                 {% endif %}
-                {% else %}
+                <div class="text-[11px] text-ink-soft">Part-time Teacher</div>
+            </div>
+            <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="present" class="peer sr-only" {% if item.is_present %}checked{% endif %}>
-                    <span
-                        class="block px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
+                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="absent" class="peer sr-only" {% if not item.is_present %}checked{% endif %}>
-                    <span
-                        class="block px-2.5 py-2 rounded-lg text-[11px] font-bold border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
+                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
                 </label>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
-
-    {% if true %}
-    <button type="submit"
-        class="w-full bg-forest text-white font-bold py-3 rounded-xl shadow-lg hover:bg-forest-deep transition">
-        {% if part_already_marked %}Update{% else %}Save{% endif %} Part-time Attendance
-    </button>
-    {% endif %}
+    <div class="sticky bottom-4">
+        <button type="submit" class="w-full bg-forest text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-forest-deep transition text-base">
+            {% if part_already_marked %}Update{% else %}Save{% endif %} Part-time Attendance
+        </button>
+    </div>
 </form>
 {% else %}
-<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-xl text-sm">
-    No part-time teachers.
-</div>
+<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-xl text-sm">No part-time teachers.</div>
 {% endif %}
 
 {% endblock %}
