@@ -341,7 +341,7 @@ def mark_attendance(request):
                     )
                 }
 
-                absent_students = []
+                newly_absent_students = []
                 to_create = []
                 to_update = []
 
@@ -354,15 +354,18 @@ def mark_attendance(request):
                         if att.is_present != is_present:
                             att.is_present = is_present
                             to_update.append(att)
+                            # Queue an alert only when Admin changes Present -> Absent.
+                            # Absent -> Present must never send an SMS.
+                            if not is_present:
+                                newly_absent_students.append(student)
                     else:
                         to_create.append(Attendance(
                             student=student,
                             date=today,
                             is_present=is_present
                         ))
-
-                    if not is_present:
-                        absent_students.append(student)
+                        if not is_present:
+                            newly_absent_students.append(student)
 
                 if to_create:
                     Attendance.objects.bulk_create(to_create, ignore_conflicts=True)
@@ -389,12 +392,12 @@ def mark_attendance(request):
             if class_student_count and attendance_count == class_student_count:
                 existing_sms = set(
                     AbsenceSms.objects.filter(
-                        student__in=absent_students, date=today
+                        student__in=newly_absent_students, date=today
                     ).values_list('student_id', flat=True)
                 )
                 new_sms = [
                     AbsenceSms(student=s, date=today)
-                    for s in absent_students if s.id not in existing_sms
+                    for s in newly_absent_students if s.id not in existing_sms
                 ]
                 if new_sms:
                     queued = AbsenceSms.objects.bulk_create(new_sms, ignore_conflicts=True)
