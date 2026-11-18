@@ -14,7 +14,6 @@
 {% endblock %}
 
 {% block content %}
-
 <div class="text-sm text-ink-soft mb-4">
     {% if teacher.mobile %}{{ teacher.mobile }}{% endif %}
     {% with class_list=teacher.get_class_list %}
@@ -43,34 +42,39 @@
     </div>
 </div>
 
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Absent Dates This Month</div>
-{% if absent_dates %}
-<div class="flex flex-wrap gap-2 mb-6">
-    {% for d in absent_dates %}
-    <span class="bg-red-50 text-absent border border-red-200 text-xs font-bold px-3 py-1.5 rounded-lg">
-        {{ d|date:"d M" }}
-    </span>
+<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Attendance Dates · Change Status</div>
+{% if attendance_records %}
+<div class="space-y-2.5">
+    {% for record in attendance_records %}
+    <div class="bg-white border border-gray-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div class="font-semibold text-forest-deep">{{ record.date|date:"d M Y" }}</div>
+        <div class="flex items-center gap-2">
+            {% if record.is_present %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-present">Present</span>
+            <form method="post" action="{% url 'correct_teacher_attendance' teacher.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ record.date|date:'Y-m-d' }}">
+                <input type="hidden" name="month" value="{{ month_str }}">
+                <input type="hidden" name="status" value="absent">
+                <button type="submit" class="bg-red-50 text-absent border border-red-200 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Mark Absent</button>
+            </form>
+            {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-absent">Absent</span>
+            <form method="post" action="{% url 'correct_teacher_attendance' teacher.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ record.date|date:'Y-m-d' }}">
+                <input type="hidden" name="month" value="{{ month_str }}">
+                <input type="hidden" name="status" value="present">
+                <button type="submit" class="bg-green-50 text-present border border-green-200 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-green-100 transition">Mark Present</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl mb-6">
-    No absences recorded this month. 🎉
+<div class="text-center text-ink-soft py-12 bg-white border border-gray-200 rounded-2xl">
+    No attendance records found for this month.
 </div>
 {% endif %}
-
-<div class="font-display text-[11px] tracking-widest uppercase text-ink-soft mb-3">Present Dates This Month</div>
-{% if present_dates %}
-<div class="flex flex-wrap gap-2">
-    {% for d in present_dates %}
-    <span class="bg-green-50 text-present border border-green-200 text-xs font-bold px-3 py-1.5 rounded-lg">
-        {{ d|date:"d M" }}
-    </span>
-    {% endfor %}
-</div>
-{% else %}
-<div class="text-center text-ink-soft py-8 bg-white border border-gray-200 rounded-2xl">
-    No attendance marked as present this month yet.
-</div>
-{% endif %}
-
 {% endblock %}
