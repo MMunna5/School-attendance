@@ -1090,6 +1090,22 @@ def mark_teacher_attendance(request):
 
 @login_required
 @user_passes_test(is_admin)
+def reset_today_teacher_attendance(request):
+    """Admin-only reset of today's teacher attendance rows; SMS history is preserved."""
+    if request.method != 'POST':
+        return redirect('mark_teacher_attendance')
+
+    today = local_today()
+    deleted_count, _ = TeacherAttendance.objects.filter(date=today).delete()
+    logger.warning(
+        "Admin %s reset today's teacher attendance (%s rows) for %s",
+        request.user.username, deleted_count, today,
+    )
+    return redirect('mark_teacher_attendance')
+
+
+@login_required
+@user_passes_test(is_admin)
 def teacher_attendance_history(request):
     year, month, month_str = _month_bounds(request.GET.get('month'))
 
