@@ -988,103 +988,59 @@ def mark_teacher_attendance(request):
     sms_queued_count = 0
     sms_warning = None
 
-    full_already_marked = TeacherAttendance.objects.filter(
-        date=today, teacher__employment_type=Teacher.EMPLOYMENT_FULL
-    ).exists()
-    part_already_marked = TeacherAttendance.objects.filter(
-        date=today, teacher__employment_type=Teacher.EMPLOYMENT_PART
-    ).exists()
-
     if request.method == 'POST':
         section = request.POST.get('section')
-
-        if section == 'full' and not full_already_marked:
-            employment_type = Teacher.EMPLOYMENT_FULL
-        elif section == 'part' and not part_already_marked:
-            employment_type = Teacher.EMPLOYMENT_PART
-        else:
-            employment_type = None
-
+        employment_type = Teacher.EMPLOYMENT_FULL if section == 'full' else (
+            Teacher.EMPLOYMENT_PART if section == 'part' else None
+        )
         if employment_type:
             with transaction.atomic():
-                already_marked = TeacherAttendance.objects.select_for_update().filter(
-                    date=today,
-                    teacher__employment_type=employment_type,
-                ).exists()
-                if not already_marked:
-                    section_teachers = list(
-                        Teacher.objects.filter(employment_type=employment_type).order_by('id')
+                section_teachers = list(Teacher.objects.filter(
+                    employment_type=employment_type
+                ).order_by('id'))
+                absent_teachers = []
+                for teacher in section_teachers:
+                    is_present = request.POST.get(f'att_{teacher.id}', 'present') == 'present'
+                    TeacherAttendance.objects.update_or_create(
+                        teacher=teacher, date=today,
+                        defaults={'is_present': is_present},
                     )
-                    absent_teachers = []
-                    attendance_rows = []
-
-                    for teacher in section_teachers:
-                        status = request.POST.get(f'att_{teacher.id}', 'present')
-                        is_present = status == 'present'
-                        attendance_rows.append(TeacherAttendance(
-                            teacher=teacher,
-                            date=today,
-                            is_present=is_present,
-                        ))
-
-                        if not is_present:
-                            absent_teachers.append(teacher)
-
-                    if attendance_rows:
-                        TeacherAttendance.objects.bulk_create(attendance_rows, ignore_conflicts=True)
-
-                    queued_messages = TeacherAbsenceSms.objects.bulk_create(
+                    if not is_present:
+                        absent_teachers.append(teacher)
+                if absent_teachers:
+                    queued = TeacherAbsenceSms.objects.bulk_create(
                         [TeacherAbsenceSms(teacher=teacher, date=today) for teacher in absent_teachers],
                         ignore_conflicts=True,
                     )
-                    sms_queued_count = len(queued_messages)
-
-                    saved = True
-                    saved_type = section
-                    if section == 'full':
-                        full_already_marked = True
-                    else:
-                        part_already_marked = True
+                    sms_queued_count = len(queued)
+                saved, saved_type = True, section
 
     teachers = Teacher.objects.all().order_by('id')
-    attendance_map = {
-        a.teacher_id: a.is_present
-        for a in TeacherAttendance.objects.filter(date=today)
-    }
+    attendance_map = {row.teacher_id: row.is_present
+                      for row in TeacherAttendance.objects.filter(date=today)}
     teacher_rows = [
-        {
-            'teacher': t,
-            'is_present': attendance_map.get(t.id, True),
-        }
-        for t in teachers
+        {'teacher': teacher, 'is_present': attendance_map.get(teacher.id, True),
+         'is_marked': teacher.id in attendance_map}
+        for teacher in teachers
     ]
-
-    full_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_FULL]
-    part_time_rows = [r for r in teacher_rows if r['teacher'].employment_type == Teacher.EMPLOYMENT_PART]
-
-    full_present = sum(1 for r in full_time_rows if r['is_present']) if full_already_marked else 0
-    full_absent = len(full_time_rows) - full_present if full_already_marked else 0
-    part_present = sum(1 for r in part_time_rows if r['is_present']) if part_already_marked else 0
-    part_absent = len(part_time_rows) - part_present if part_already_marked else 0
+    full_time_rows = [row for row in teacher_rows if row['teacher'].employment_type == Teacher.EMPLOYMENT_FULL]
+    part_time_rows = [row for row in teacher_rows if row['teacher'].employment_type == Teacher.EMPLOYMENT_PART]
+    full_already_marked = any(row['is_marked'] for row in full_time_rows)
+    part_already_marked = any(row['is_marked'] for row in part_time_rows)
+    full_present = sum(1 for row in full_time_rows if row['is_marked'] and row['is_present'])
+    full_absent = sum(1 for row in full_time_rows if row['is_marked'] and not row['is_present'])
+    part_present = sum(1 for row in part_time_rows if row['is_marked'] and row['is_present'])
+    part_absent = sum(1 for row in part_time_rows if row['is_marked'] and not row['is_present'])
 
     return render(request, 'attendance/mark_teacher_attendance.html', {
-        'teachers': teachers,
-        'teacher_rows': teacher_rows,
-        'full_time_rows': full_time_rows,
-        'part_time_rows': part_time_rows,
-        'today': today,
-        'saved': saved,
-        'saved_type': saved_type,
-        'sms_queued_count': sms_queued_count,
-        'sms_warning': sms_warning,
-        'full_already_marked': full_already_marked,
-        'part_already_marked': part_already_marked,
-        'full_total': len(full_time_rows),
-        'part_total': len(part_time_rows),
-        'full_present': full_present,
-        'full_absent': full_absent,
-        'part_present': part_present,
-        'part_absent': part_absent,
+        'teachers': teachers, 'teacher_rows': teacher_rows,
+        'full_time_rows': full_time_rows, 'part_time_rows': part_time_rows,
+        'today': today, 'saved': saved, 'saved_type': saved_type,
+        'sms_queued_count': sms_queued_count, 'sms_warning': sms_warning,
+        'full_already_marked': full_already_marked, 'part_already_marked': part_already_marked,
+        'full_total': len(full_time_rows), 'part_total': len(part_time_rows),
+        'full_present': full_present, 'full_absent': full_absent,
+        'part_present': part_present, 'part_absent': part_absent,
         'total_teachers': teachers.count(),
     })
 
