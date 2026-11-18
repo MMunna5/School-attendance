@@ -119,11 +119,11 @@
             <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="present" class="peer sr-only" {% if item.is_present %}checked{% endif %}>
-                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
+                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">{% if item.is_marked and not item.is_present %}Mark Present{% else %}Present{% endif %}</span>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="absent" class="peer sr-only" {% if not item.is_present %}checked{% endif %}>
-                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
+                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">{% if item.is_marked and item.is_present %}Mark Absent{% else %}Absent{% endif %}</span>
                 </label>
             </div>
         </div>
@@ -166,11 +166,11 @@
             <div class="w-full sm:w-auto flex gap-1.5 sm:flex-shrink-0 justify-end">
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="present" class="peer sr-only" {% if item.is_present %}checked{% endif %}>
-                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">Present</span>
+                    <span class="present-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-present peer-checked:text-white peer-checked:border-present transition">{% if item.is_marked and not item.is_present %}Mark Present{% else %}Present{% endif %}</span>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="att_{{ item.teacher.id }}" value="absent" class="peer sr-only" {% if not item.is_present %}checked{% endif %}>
-                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">Absent</span>
+                    <span class="absent-option block text-center whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-ink-soft peer-checked:bg-absent peer-checked:text-white peer-checked:border-absent transition">{% if item.is_marked and item.is_present %}Mark Absent{% else %}Absent{% endif %}</span>
                 </label>
             </div>
         </div>
