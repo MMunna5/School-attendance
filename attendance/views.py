@@ -1146,10 +1146,38 @@ def teacher_history_detail(request, teacher_id):
         'next_month': next_month,
         'present_dates': present_dates,
         'absent_dates': absent_dates,
+        'attendance_records': records,
         'present_count': len(present_dates),
         'absent_count': len(absent_dates),
         'total_marked': len(records),
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+def correct_teacher_attendance(request, teacher_id):
+    """Admin-only: correct one teacher's attendance status for a selected date."""
+    if request.method != 'POST':
+        return redirect('teacher_history_detail', teacher_id=teacher_id)
+
+    teacher = get_object_or_404(Teacher, pk=teacher_id)
+    date_value = parse_date((request.POST.get('date') or '').strip())
+    new_status = request.POST.get('status')
+    month_value = request.POST.get('month', '')
+
+    if not date_value or new_status not in ('present', 'absent'):
+        return redirect('teacher_history_detail', teacher_id=teacher.id)
+
+    TeacherAttendance.objects.update_or_create(
+        teacher=teacher,
+        date=date_value,
+        defaults={'is_present': new_status == 'present'},
+    )
+
+    return redirect(
+        f"{reverse('teacher_history_detail', args=[teacher.id])}?month={month_value}"
+        if month_value else reverse('teacher_history_detail', args=[teacher.id])
+    )
 
 
 @login_required
