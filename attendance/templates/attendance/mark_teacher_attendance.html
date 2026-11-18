@@ -23,18 +23,9 @@
 </div>
 {% endif %}
 
-{% if full_already_marked or part_already_marked %}
-<form method="post" action="{% url 'reset_today_teacher_attendance' %}"
-    onsubmit="return confirm('Are you sure? This will delete ALL teacher attendance records for today only. SMS history and previous dates will remain unchanged.');"
-    class="mb-5">
-    {% csrf_token %}
-    <button type="submit"
-        class="w-full sm:w-auto bg-red-50 text-absent border border-red-200 font-bold px-4 py-2.5 rounded-xl hover:bg-red-100 transition">
-        Reset Today's Teacher Attendance
-    </button>
-    <p class="text-xs text-ink-soft mt-2">Admin only · Deletes today's attendance records only. Previous dates and SMS history are kept.</p>
-</form>
-{% endif %}
+<div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-3 mb-5 text-sm">
+    Admin can directly change today's Present / Absent status below and save the updated attendance.
+</div>
 
 {% if sms_warning %}
 <div class="bg-red-50 border border-red-200 text-absent rounded-xl p-4 mb-5 text-sm">
@@ -63,7 +54,7 @@
 
 {% if full_time_rows %}
 <form method="post"
-    onsubmit="return confirm('Save Full-time attendance and send SMS? This can only be done once per day for Full-time.');">
+    onsubmit="return confirm('Save or update Full-time attendance?');">
     {% csrf_token %}
     <input type="hidden" name="section" value="full">
 
@@ -85,7 +76,7 @@
                     phone</span>{% endif %}
             </div>
             <div class="sm:col-span-4 flex gap-1.5 justify-start sm:justify-center flex-wrap">
-                {% if full_already_marked %}
+                {% if false %}
                 {% if item.is_present %}
                 <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
                 {% else %}
@@ -108,10 +99,10 @@
         {% endfor %}
     </div>
 
-    {% if not full_already_marked %}
+    {% if true %}
     <button type="submit"
         class="w-full bg-forest text-white font-bold py-3 rounded-xl shadow-lg hover:bg-forest-deep transition mb-8">
-        Save Full-time Attendance &amp; Send SMS
+        {% if full_already_marked %}Update{% else %}Save{% endif %} Full-time Attendance
     </button>
     {% else %}
     <div class="mb-8"></div>
@@ -144,7 +135,7 @@
 
 {% if part_time_rows %}
 <form method="post"
-    onsubmit="return confirm('Save Part-time attendance and send SMS? This can only be done once per day for Part-time.');">
+    onsubmit="return confirm('Save or update Part-time attendance?');">
     {% csrf_token %}
     <input type="hidden" name="section" value="part">
 
@@ -166,7 +157,7 @@
                     phone</span>{% endif %}
             </div>
             <div class="sm:col-span-4 flex gap-1.5 justify-start sm:justify-center flex-wrap">
-                {% if part_already_marked %}
+                {% if false %}
                 {% if item.is_present %}
                 <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-present text-white">Present</span>
                 {% else %}
@@ -189,10 +180,10 @@
         {% endfor %}
     </div>
 
-    {% if not part_already_marked %}
+    {% if true %}
     <button type="submit"
         class="w-full bg-forest text-white font-bold py-3 rounded-xl shadow-lg hover:bg-forest-deep transition">
-        Save Part-time Attendance &amp; Send SMS
+        {% if part_already_marked %}Update{% else %}Save{% endif %} Part-time Attendance
     </button>
     {% endif %}
 </form>
