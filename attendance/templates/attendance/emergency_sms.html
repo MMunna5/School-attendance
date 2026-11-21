@@ -6,8 +6,8 @@
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 mb-5">
-        <h2 class="font-bold">Send an urgent notice to parents</h2>
-        <p class="text-sm mt-1">Choose all students, one class, or multiple specific students. The configured school name is added automatically to the SMS.</p>
+        <h2 class="font-bold">Send a bulk notice to students and teachers</h2>
+        <p class="text-sm mt-1">Choose all students, one class, selected students, all teachers, or students and teachers together. Students receive SMS on their parent mobile; teachers receive SMS on their own mobile.</p>
     </div>
 
     {% if messages %}
@@ -35,6 +35,8 @@
                 <option value="all" {% if target_type == 'all' %}selected{% endif %}>All students / all classes</option>
                 <option value="class" {% if target_type == 'class' %}selected{% endif %}>A specific class</option>
                 <option value="student" {% if target_type == 'student' %}selected{% endif %}>Specific student(s)</option>
+                <option value="teachers" {% if target_type == 'teachers' %}selected{% endif %}>All teachers</option>
+                <option value="all_with_teachers" {% if target_type == 'all_with_teachers' %}selected{% endif %}>All students + teachers</option>
             </select>
         </div>
 
@@ -107,7 +109,7 @@
         </div>
 
         <button id="send-emergency-sms" type="submit" class="w-full sm:w-auto rounded-xl bg-forest text-white font-semibold px-6 py-3 hover:opacity-90">
-            Send Emergency SMS
+            Send Bulk SMS
         </button>
     </form>
 </div>
