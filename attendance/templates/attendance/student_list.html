@@ -129,7 +129,7 @@
         </div>
         <div class="student-actions flex gap-4 text-sm font-semibold flex-shrink-0">
             <a href="{% url 'student_edit' student.id %}" class="text-forest hover:underline">Edit</a>
-            <a href="{% url 'student_delete' student.id %}" class="text-absent hover:underline">Delete</a>
+            <a href="{% url 'student_delete' student.id %}?next={{ return_url|urlencode }}" class="text-absent hover:underline">Delete</a>
         </div>
     </div>
     {% endfor %}
