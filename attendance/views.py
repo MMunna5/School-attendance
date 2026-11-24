@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
@@ -489,6 +490,7 @@ def student_list(request):
         'query': query,
         'class_filter': class_filter,
         'all_classes': all_classes,
+        'return_url': request.get_full_path(),
     })
 
 
@@ -547,10 +549,18 @@ def student_edit(request, student_id):
 @user_passes_test(is_admin)
 def student_delete(request, student_id):
     student = get_object_or_404(Student, id=student_id)
+    next_url = request.POST.get('next') or request.GET.get('next', '')
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse('student_list')
+
     if request.method == 'POST':
         student.delete()
-        return redirect('student_list')
-    return render(request, 'attendance/student_confirm_delete.html', {'student': student})
+        return redirect(next_url)
+
+    return render(request, 'attendance/student_confirm_delete.html', {
+        'student': student,
+        'next_url': next_url,
+    })
 
 
 @login_required
